@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lichess-profile",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "routes": [{ "pattern": "lichess.erhan.dev", "custom_domain": true }],
+  "assets": { "directory": "public", "binding": "ASSETS", "run_worker_first": false },
+  "durable_objects": {
+    "bindings": [
+      { "name": "PROFILE", "class_name": "Profile" },
+      { "name": "REGISTRY", "class_name": "Registry" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Profile", "Registry"] }],
+  "observability": { "enabled": true }
+}
