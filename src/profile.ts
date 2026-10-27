@@ -23,6 +23,7 @@ export interface State {
   startedAt: number;
   updatedAt: number;     // last time an import finished
   waitUntil?: number;    // set while backing off after a rate limit
+  needUser?: boolean;    // account details must be (re)loaded before fetching games
   retries: number;
   error?: string;
 }
@@ -33,6 +34,7 @@ export interface View { state: State; stats: Stats | null }
 export class Profile extends DurableObject<Env> {
   private sql: SqlStorage;
   private inflight = 0;  // games parsed by the running import but not yet stored
+  private running = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -60,9 +62,15 @@ export class Profile extends DurableObject<Env> {
       state = await this.refresh(true);
     } else if (state.status === "importing") {
       // Recover an import whose alarm was lost.
-      if (!(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + 1000);
+      if (!this.running && !(await this.ctx.storage.getAlarm())) await this.ctx.storage.setAlarm(Date.now() + 1000);
     }
     return { state, stats: this.get<Stats>("stats") };
+  }
+
+  async probe(): Promise<string> {
+    const r = await fetch("https://lichess.org/api/user/YasinEmrah", { headers: { "User-Agent": "lichess-profile (+https://lichess.erhan.dev)", ...(this.env.LICHESS_TOKEN ? { Authorization: `Bearer ${this.env.LICHESS_TOKEN}` } : {}) } });
+    const t = await fetch("https://www.cloudflare.com/cdn-cgi/trace").then(r => r.text());
+    return r.status + " " + (t.match(/colo=\w+/)?.[0] ?? "") + " " + (t.match(/ip=[^\n]+/)?.[0] ?? "");
   }
 
   async status(): Promise<State | null> {
@@ -82,41 +90,56 @@ export class Profile extends DurableObject<Env> {
     if (state.status === "error") state.retries = 0;
     else if (state.status !== "ready") return state;
     if (Date.now() - state.updatedAt < (auto ? STALE_MS : MIN_REFRESH_MS)) return state;
-    const user = await fetchUser(state.id).catch(() => null);
-    if (user) this.put("user", user);
     state.status = "importing";
+    state.needUser = true;
     state.startedAt = Date.now();
-    state.expected = user?.count?.all ?? state.expected;
     state.error = undefined;
     this.put("state", state);
     await this.ctx.storage.setAlarm(Date.now());
     return state;
   }
 
+  // Lichess is only contacted from the alarm, so a rate limit delays the import instead of failing the page.
   private async begin(name: string, prev: State | null): Promise<State> {
-    const now = Date.now();
-    let user: LichessUser | null;
-    try {
-      user = await fetchUser(name);
-    } catch (e) {
-      return { status: "error", name, id: name.toLowerCase(), expected: 0, fetched: 0, cursor: 0, startedAt: now, updatedAt: 0, retries: 0, error: String(e) };
-    }
     const state: State = {
-      status: "importing", name: user?.username ?? name, id: user?.id ?? name.toLowerCase(),
-      expected: user?.count?.all ?? 0, fetched: prev?.fetched ?? 0, cursor: prev?.cursor ?? 0,
-      startedAt: now, updatedAt: 0, retries: 0,
+      status: "importing", name, id: name.toLowerCase(), needUser: true,
+      expected: prev?.expected ?? 0, fetched: prev?.fetched ?? 0, cursor: prev?.cursor ?? 0,
+      startedAt: Date.now(), updatedAt: 0, retries: 0,
     };
+    this.put("state", state);
+    await this.ctx.storage.setAlarm(Date.now());
+    return state;
+  }
+
+  // Loads the account before an import; returns false when there is nothing to import.
+  private async loadUser(state: State): Promise<boolean> {
+    const user = await fetchUser(state.id, this.env.LICHESS_TOKEN);
+    state.needUser = false;
     if (!user) state.status = "missing";
     else if (user.disabled || user.closed || user.tosViolation) state.status = "closed";
-    if (user) this.put("user", user);
+    else {
+      this.put("user", user);
+      state.name = user.username;
+      state.expected = user.count?.all ?? state.expected;
+      return true;
+    }
     this.put("state", state);
-    if (state.status === "importing") await this.ctx.storage.setAlarm(now);
-    return state;
+    return false;
   }
 
   async alarm() {
     const state = this.get<State>("state");
-    if (!state || state.status !== "importing") return;
+    if (!state || state.status !== "importing" || this.running) return;
+    this.running = true;
+    try {
+      await this.importPage(state);
+    } finally {
+      this.running = false;
+      this.inflight = 0;
+    }
+  }
+
+  private async importPage(state: State) {
     state.waitUntil = undefined;
     let batch: Game[] = [];
     const flush = () => {
@@ -133,8 +156,9 @@ export class Profile extends DurableObject<Env> {
       });
     };
     try {
+      if (state.needUser && !(await this.loadUser(state))) return;
       let n = 0;
-      for await (const raw of streamGames(state.id, state.cursor, PAGE)) {
+      for await (const raw of streamGames(state.id, state.cursor, PAGE, this.env.LICHESS_TOKEN)) {
         batch.push(toGame(raw, state.id));
         this.inflight = batch.length;
         n++;

@@ -23,22 +23,29 @@ export interface LichessUser {
 
 export class RateLimited extends Error {}
 
-export async function fetchUser(name: string): Promise<LichessUser | null> {
-  const res = await fetch(`${API}/user/${encodeURIComponent(name)}`, { headers: { "User-Agent": UA } });
+// Requests from Workers share one egress IP that Lichess rate-limits, so a personal API token is sent when configured.
+const headers = (token?: string, accept?: string): Record<string, string> => ({
+  "User-Agent": UA,
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  ...(accept ? { Accept: accept } : {}),
+});
+
+export async function fetchUser(name: string, token?: string): Promise<LichessUser | null> {
+  const res = await fetch(`${API}/user/${encodeURIComponent(name)}`, { headers: headers(token) });
   if (res.status === 404) return null;
   if (res.status === 429) throw new RateLimited("lichess rate limit");
-  if (!res.ok) throw new Error(`lichess user ${res.status}`);
+  if (!res.ok) throw new Error(`lichess user ${res.status}: ${(await res.text()).slice(0, 200)}`);
   return res.json();
 }
 
 // Streams finished games oldest-first, starting at `since` (ms), at most `max` games.
-export async function* streamGames(name: string, since: number, max: number): AsyncGenerator<any> {
+export async function* streamGames(name: string, since: number, max: number, token?: string): AsyncGenerator<any> {
   const q = new URLSearchParams({
     since: String(since), max: String(max), sort: "dateAsc",
     moves: "true", opening: "true", accuracy: "true", clocks: "false", evals: "false", finished: "true",
   });
   const res = await fetch(`${API}/games/user/${encodeURIComponent(name)}?${q}`, {
-    headers: { "User-Agent": UA, Accept: "application/x-ndjson" },
+    headers: headers(token, "application/x-ndjson"),
   });
   if (res.status === 429) throw new RateLimited("lichess rate limit");
   if (!res.ok || !res.body) throw new Error(`lichess games ${res.status}`);

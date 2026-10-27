@@ -10,6 +10,7 @@ export interface Env {
   PROFILE: DurableObjectNamespace<Profile>;
   REGISTRY: DurableObjectNamespace<Registry>;
   ASSETS: Fetcher;
+  LICHESS_TOKEN?: string;
 }
 
 const html = (body: string, status = 200, cache = "no-store") =>
@@ -28,6 +29,19 @@ export default {
     if (path === "/") {
       const reg = await env.REGISTRY.get(env.REGISTRY.idFromName("main")).recent(12);
       return html(homePage(reg), 200, "public, max-age=60");
+    }
+
+    if (path === "/api/_probe") {
+      const hint = url.searchParams.get("hint") as DurableObjectLocationHint | null;
+      const out: string[] = [];
+      const r = await fetch("https://lichess.org/api/user/YasinEmrah", { headers: { "User-Agent": "lichess-profile (+https://lichess.erhan.dev)" } });
+      out.push("worker " + r.status + " " + (req.cf?.colo ?? "") + (env.LICHESS_TOKEN ? " token" : " no-token"));
+      for (const h of ["weur", "eeur", "enam", "wnam", "apac"] as DurableObjectLocationHint[]) {
+        if (hint && hint !== h) continue;
+        const stub = env.PROFILE.get(env.PROFILE.idFromName("_probe_" + h + Date.now()), { locationHint: h });
+        out.push(h + " " + await stub.probe().catch(e => String(e)));
+      }
+      return new Response(out.join("\n"));
     }
 
     if (path === "/go") {
@@ -71,7 +85,7 @@ export default {
       const cache = caches.default;
       const hit = await cache.match(req);
       if (hit) return hit;
-      const png = await profile(env, m[1]).og();
+      const png = await profile(env, m[1]).og().catch(e => { console.error("og", e); return null; });
       if (!png) return env.ASSETS.fetch(new Request(`${url.origin}/og-default.png`));
       const res = new Response(png, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
       ctx.waitUntil(cache.put(req, res.clone()));

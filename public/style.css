@@ -125,6 +125,7 @@ td{padding:9px 0;border-top:1px solid var(--line2)}td.num{text-align:right;paddi
  .bt{grid-template-columns:40px minmax(0,1fr) auto;font-size:14px}.bt>.muted:last-child{display:none}
  .bt2{grid-template-columns:minmax(0,1fr) auto auto}.bt2>.muted:last-child{display:block}
  .share button,.share a{padding:10px 14px;font-size:14px}
+ td.barc,th.barh{display:none}table{font-size:14px}td.num{padding-left:10px}
  .home .search{flex-direction:column}
 }
 .capturing .share,.capturing .topbar .search{display:none}

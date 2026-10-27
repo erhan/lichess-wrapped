@@ -23,8 +23,8 @@ function layout(p: Layout) {
 ${p.noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta name="theme-color" content="#120f0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css?v=3">
-<script src="/app.js?v=3" defer></script>
+<link rel="stylesheet" href="/style.css?v=4">
+<script src="/app.js?v=4" defer></script>
 </head><body class="${p.cls ?? ""}">${p.body}</body></html>`;
 }
 
@@ -130,7 +130,7 @@ function openingRows(list: Named[]) {
 }
 
 function endRows(list: [string, number][], col: string) {
-  return list.map(([k, p]) => `<div class="tr"><span>${END_NAMES[k] ?? esc(k)}</span><div class="tb"><i style="width:${p}%;background:${col}"></i></div><b>${pct(p)}</b></div>`).join("");
+  return list.filter(([, p]) => p >= 0.5).map(([k, p]) => `<div class="tr"><span>${END_NAMES[k] ?? esc(k)}</span><div class="tb"><i style="width:${p}%;background:${col}"></i></div><b>${pct(p)}</b></div>`).join("");
 }
 
 const moveList = (l: [string, number][], prefix: string) => l.slice(0, 4).map(([m, p]) => `<b>${prefix}${esc(m)}</b> ${pct(p)}`).join(" · ");
