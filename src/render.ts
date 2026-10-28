@@ -8,7 +8,13 @@ import { fmt, dec, pct, date, isoDate, month, esc, flag, PIECE_GLYPHS } from "./
 export const ORIGIN = "https://lichess.erhan.dev";
 const ASSET_V = 8;
 
-interface Layout { lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string; noindex?: boolean; search?: boolean }
+interface Layout {
+  lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string;
+  noindex?: boolean; search?: boolean; type?: "website" | "profile"; jsonld?: object;
+}
+
+// Each language has its own URL (?lang=), the bare path is the x-default.
+const pageUrl = (path: string, lang: Lang) => `${ORIGIN}${path}?lang=${lang}`;
 
 // Applies the saved theme before first paint; without one the CSS follows the system setting.
 const THEME_BOOT = `<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>`;
@@ -19,7 +25,7 @@ const MOON = `<svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d
 function layout(p: Layout) {
   const t = DICTS[p.lang];
   const image = p.image ?? `${ORIGIN}/og-default.png`;
-  const alt = (l: string) => `${ORIGIN}${p.path}?lang=${l}`;
+  const url = pageUrl(p.path, p.lang);
   const client = JSON.stringify({ lang: p.lang, ...t.client }).replace(/</g, "\\u003c");
   const langLinks = LANGS.map(l => `<a href="?lang=${l}" hreflang="${l}"${l === p.lang ? ' aria-current="true"' : ""}>${l.toUpperCase()}</a>`).join("");
   return `<!doctype html><html lang="${p.lang}"><head><meta charset="utf-8">
@@ -27,12 +33,12 @@ function layout(p: Layout) {
 ${THEME_BOOT}
 <title>${esc(p.title)}</title>
 <meta name="description" content="${esc(p.desc)}">
-<link rel="canonical" href="${ORIGIN}${p.path}">
-${LANGS.map(l => `<link rel="alternate" hreflang="${l}" href="${alt(l)}">`).join("")}<link rel="alternate" hreflang="x-default" href="${ORIGIN}${p.path}">
-<meta property="og:type" content="profile"><meta property="og:site_name" content="${t.site}">
+<link rel="canonical" href="${url}">
+${LANGS.map(l => `<link rel="alternate" hreflang="${l}" href="${pageUrl(p.path, l)}">`).join("")}<link rel="alternate" hreflang="x-default" href="${ORIGIN}${p.path}">
+<meta property="og:type" content="${p.type ?? "website"}"><meta property="og:site_name" content="${t.site}">
 <meta property="og:title" content="${esc(p.title)}"><meta property="og:description" content="${esc(p.desc)}">
-<meta property="og:url" content="${ORIGIN}${p.path}"><meta property="og:image" content="${esc(image)}">
-<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:url" content="${url}"><meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="${esc(p.title)}">
 <meta property="og:locale" content="${p.lang === "tr" ? "tr_TR" : "en_US"}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${esc(image)}">
 ${p.noindex ? '<meta name="robots" content="noindex">' : ""}
@@ -41,6 +47,7 @@ ${p.noindex ? '<meta name="robots" content="noindex">' : ""}
 <link rel="preload" href="/fonts/inter-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/style.css?v=${ASSET_V}">
 <script id="i18n" type="application/json">${client}</script>
+${p.jsonld ? `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...p.jsonld }).replace(/</g, "\\u003c")}</script>` : ""}
 <script src="/app.js?v=${ASSET_V}" defer></script>
 </head><body class="${p.cls ?? ""}">
 <nav class="nav"><div class="nav-in">
@@ -72,6 +79,10 @@ export function homePage(lang: Lang, reg: Home) {
     .map(([h, d], i) => `<div class="step"><span class="step-n">${i + 1}</span><h3>${h}</h3><p>${d}</p></div>`).join("");
   return layout({
     lang, title: t.homeTitle, desc: t.homeDesc, path: "/", cls: "home",
+    jsonld: {
+      "@type": "WebSite", name: t.site, url: `${ORIGIN}/`, description: t.homeDesc, inLanguage: lang,
+      potentialAction: { "@type": "SearchAction", target: `${ORIGIN}/go?u={u}`, "query-input": "required name=u" },
+    },
     body: `<main class="wrap">
 <section class="hero-home"><div class="board" aria-hidden="true"></div>
 <h1 class="home-h">${t.homeH1a} <em>${t.homeH1b}</em></h1>
@@ -287,7 +298,7 @@ ${card(t.records, `<div class="rec">
 <div class="grid g3">
 ${card(t.titled, st.titled.length ? st.titled.map(r => `<div class="tt"><span class="tag">${r.name}</span><span class="num">${fill(t.nGames, { n: f(r.n) })}</span>${wdl(r, t, 8)}<span class="num s">${p(r.s)}</span></div>`).join("") : `<p class="muted">${t.titledNone}</p>`)}
 ${card(t.beaten, st.beaten.map(b => `<div class="bt">${b.title ? titleTag(b.title) : "<span></span>"}<a href="https://lichess.org/${esc(b.id)}" target="_blank" rel="noopener"><b>${esc(b.name)}</b></a><span class="num gold">${b.rating}</span><span class="muted">${t.perf[b.perf] ?? esc(b.perf)} · ${b.year}</span></div>`).join("") || none)}
-${card(t.opponents, st.opponents.map(o => `<div class="bt bt2"><a href="/@/${esc(o.name)}"><b>${esc(o.name)}</b></a><span class="num">${fill(t.nGames, { n: f(o.n) })}</span><span class="muted">${fill(t.wdlShort, { w: o.W, d: o.D, l: o.L })}</span></div>`).join("") || none)}
+${card(t.opponents, st.opponents.map(o => `<div class="bt bt2"><a href="/@/${esc(o.name)}" rel="nofollow"><b>${esc(o.name)}</b></a><span class="num">${fill(t.nGames, { n: f(o.n) })}</span><span class="muted">${fill(t.wdlShort, { w: o.W, d: o.D, l: o.L })}</span></div>`).join("") || none)}
 </div>
 
 ${footer(fill(t.source, { n: f(st.downloaded) }) + (st.voided ? fill(t.voided, { n: f(st.voided) }) : ""), `lichess.erhan.dev/@/${esc(name)}`)}
@@ -296,6 +307,32 @@ ${footer(fill(t.source, { n: f(st.downloaded) }) + (st.voided ? fill(t.voided, {
   return layout({
     lang, title: fill(t.statsTitle, { name: fullTitle }), desc, path: `/@/${name}`,
     image: `${ORIGIN}/og/${encodeURIComponent(u.id)}.png?v=${st.generatedAt}&lang=${lang}`,
-    body, cls: "profile", search: true,
+    body, cls: "profile", search: true, type: "profile",
+    jsonld: {
+      "@type": "ProfilePage", name: fill(t.statsTitle, { name: fullTitle }), description: desc, inLanguage: lang,
+      url: pageUrl(`/@/${name}`, lang), dateModified: new Date(state.updatedAt).toISOString(),
+      mainEntity: {
+        "@type": "Person", name: u.realName || name, alternateName: name, identifier: u.id,
+        ...(u.title ? { honorificPrefix: u.title } : {}),
+        url: `https://lichess.org/@/${name}`, sameAs: [`https://lichess.org/@/${name}`],
+      },
+    },
   });
+}
+
+// Every page in both languages, with the bare path as x-default.
+export function sitemap(profiles: { name: string; updatedAt: number }[]) {
+  const entry = (path: string, lastmod?: number) => {
+    const links = LANGS.map(l => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(pageUrl(path, l))}"/>`).join("")
+      + `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(ORIGIN + path)}"/>`;
+    const mod = lastmod ? `<lastmod>${new Date(lastmod).toISOString().slice(0, 10)}</lastmod>` : "";
+    return LANGS.map(l => `<url><loc>${esc(pageUrl(path, l))}</loc>${mod}${links}</url>`).join("\n");
+  };
+  const newest = profiles[0]?.updatedAt;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${entry("/", newest)}
+${profiles.map(p => entry(`/@/${encodeURIComponent(p.name)}`, p.updatedAt)).join("\n")}
+</urlset>
+`;
 }

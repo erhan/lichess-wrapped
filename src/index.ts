@@ -1,5 +1,5 @@
 import { USERNAME_RE } from "./lichess";
-import { homePage, loadingPage, messagePage, profilePage } from "./render";
+import { homePage, loadingPage, messagePage, profilePage, sitemap } from "./render";
 import { DICTS, fill, pickLang, type Lang } from "./i18n";
 import { esc } from "./format";
 import type { Profile, View, Ingest, State } from "./profile";
@@ -55,6 +55,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   if (path === "/") {
     const reg = await env.REGISTRY.get(env.REGISTRY.idFromName("main")).home(12);
     return html(homePage(lang, reg));
+  }
+
+  if (path === "/sitemap.xml") {
+    const all = await env.REGISTRY.get(env.REGISTRY.idFromName("main")).all();
+    return new Response(sitemap(all), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" } });
   }
 
   if (path === "/go") {

@@ -43,6 +43,11 @@ export class Registry extends DurableObject<Env> {
     return { total, recent };
   }
 
+  async all(): Promise<{ name: string; updatedAt: number }[]> {
+    return this.sql.exec<{ name: string; updated_at: number }>("SELECT name, updated_at FROM profiles ORDER BY updated_at DESC").toArray()
+      .map(r => ({ name: r.name, updatedAt: r.updated_at }));
+  }
+
   async home(limit = 12): Promise<Home> {
     if (this.community === undefined) {
       const pending = await this.backfill();

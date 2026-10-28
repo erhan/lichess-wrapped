@@ -13,6 +13,7 @@ Yayın adresi: **https://lichess.erhan.dev**
 | `POST /api/ingest/:kullanici` | Tarayıcının Lichess'ten indirdiği oyunları sırayla kaydeder |
 | `POST /api/refresh/:kullanici` | Son güncellemeden sonraki oyunlar için içe aktarma açar (saatte en fazla bir kez) |
 | `/api/stats/:kullanici.json` | Hesaplanmış istatistikler |
+| `/sitemap.xml` | Ana sayfa ve tüm profiller, iki dilde (`?lang=tr` / `?lang=en`) |
 
 ## Nasıl çalışır
 
