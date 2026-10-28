@@ -9,18 +9,20 @@ Yayın adresi: **https://lichess.erhan.dev**
 | `/` | Arama kutusu ve son hazırlanan profiller |
 | `/@/:kullanici` | Profil sayfası; ilk ziyarette içe aktarmayı başlatır ve ilerleme gösterir |
 | `/og/:kullanici.png` | Link önizlemesi için 1200×630 paylaşım kartı |
-| `/api/status/:kullanici` | İçe aktarma durumu (`importing`, `ready`, `missing`, `closed`, `error`) |
-| `POST /api/refresh/:kullanici` | Son güncellemeden sonraki oyunları çeker (saatte en fazla bir kez) |
+| `/api/status/:kullanici` | İçe aktarma durumu (`importing`, `ready`, `missing`, `closed`) |
+| `POST /api/ingest/:kullanici` | Tarayıcının Lichess'ten indirdiği oyunları sırayla kaydeder |
+| `POST /api/refresh/:kullanici` | Son güncellemeden sonraki oyunlar için içe aktarma açar (saatte en fazla bir kez) |
 | `/api/stats/:kullanici.json` | Hesaplanmış istatistikler |
 
 ## Nasıl çalışır
 
 - Cloudflare Worker + Durable Object (SQLite). R2 ve D1 kullanılmaz.
-- Her Lichess hesabı için bir `Profile` nesnesi vardır. Oyunlar Lichess'ten eskiden yeniye (`sort=dateAsc`, `since=<imleç>`) akış olarak alınır, 500'lük JSON parçaları halinde saklanır. Her alarm çalışmasında en fazla 2.000 oyun alınır, kalan için yeni alarm kurulur; kesilen içe aktarma kaldığı yerden devam eder.
-- Güncellemede yalnızca imleçten sonraki oyunlar çekilir. 24 saatten eski bir profil ziyaret edildiğinde arka planda kendiliğinden güncellenir; sayfadaki **Güncelle** düğmesi saatte bir kullanılabilir.
-- İstatistikler içe aktarma bitince bir kez hesaplanıp saklanır; sayfa her istekte bu özetten üretilir. Paylaşım kartı da istatistik sürümü başına bir kez üretilip saklanır.
+- **Oyunları ziyaretçinin tarayıcısı indirir.** Lichess, bütün Cloudflare Workers'ın paylaştığı çıkış IP'sine (`2a06:98c0:3600::103`) API tokenıyla bile 429 döner. Bu yüzden `public/app.js`, Lichess API'sinden (CORS açık) önce hesabı, sonra oyunları eskiden yeniye (`sort=dateAsc`, `since=<imleç>`) akış olarak alır ve 300'lük ham paketler halinde `/api/ingest`'e gönderir.
+- Her Lichess hesabı için bir `Profile` nesnesi vardır. Her paket o anki imleçle (`since`) gönderilir; imleç tutmazsa 409 döner, böylece iki sekme veriyi karıştıramaz. Sunucu oyunu kendi biçimine (`src/game.ts`) çevirir ve JSON parçaları halinde saklar.
+- Sunucu doğrulaması: hesap adı eşleşmeli, her oyunda o kullanıcı oynamış olmalı, oyun kimliği 8 karakter olmalı, tarihler artan sırada olmalı ve gelecekte olmamalı. Kayıtlı oyunlar silinip değiştirilemez; güncelleme yalnızca imleçten sonrasını ekler. Sunucu Lichess'e ulaşamadığı için verinin gerçekten Lichess'ten geldiğini kanıtlayamaz; ilk içe aktarmayı yapan istemci sahte veri gönderebilir.
+- İndirme sayfa açıkken sürer; sayfa kapanırsa sonraki ziyaretçi kaldığı yerden devam ettirir. 24 saatten eski bir profil açıldığında tarayıcı arka planda yeni oyunları ekler; **Güncelle** düğmesi saatte bir kullanılabilir.
+- İstatistikler içe aktarma bitince bir kez hesaplanıp saklanır; sayfa her istekte bu özetten üretilir. Paylaşım kartı (`workers-og`) istatistik sürümü başına bir kez üretilip saklanır.
 - `Registry` nesnesi ana sayfadaki profil listesini tutar.
-- Lichess, `User-Agent` başlığı olmayan isteklere 404 döner; 429 alınca bir dakika beklenir.
 - Isı haritası UTC olarak saklanır, tarayıcıda ziyaretçinin saat dilimine çevrilir.
 
 ## Geliştirme

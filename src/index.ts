@@ -1,6 +1,6 @@
 import { USERNAME_RE } from "./lichess";
 import { homePage, loadingPage, messagePage, profilePage } from "./render";
-import type { Profile, View } from "./profile";
+import type { Profile, View, Ingest, State } from "./profile";
 import type { Registry } from "./registry";
 
 export { Profile } from "./profile";
@@ -10,8 +10,9 @@ export interface Env {
   PROFILE: DurableObjectNamespace<Profile>;
   REGISTRY: DurableObjectNamespace<Registry>;
   ASSETS: Fetcher;
-  LICHESS_TOKEN?: string;
 }
+
+const MAX_BODY = 8 << 20;
 
 const html = (body: string, status = 200, cache = "no-store") =>
   new Response(body, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": cache } });
@@ -19,6 +20,14 @@ const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
 
 const profile = (env: Env, name: string) => env.PROFILE.get(env.PROFILE.idFromName(name.toLowerCase()));
+
+const publicState = (s: State) => ({
+  status: s.status, name: s.name, id: s.id, fetched: s.fetched, expected: s.expected,
+  cursor: s.cursor, needUser: s.needUser, updatedAt: s.updatedAt,
+});
+
+const invalidName = (name: string) =>
+  html(messagePage("Geçersiz kullanıcı adı", "Lichess kullanıcı adları harf, rakam, alt çizgi ve tire içerir.", name), 400);
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -31,48 +40,47 @@ export default {
       return html(homePage(reg), 200, "public, max-age=60");
     }
 
-    if (path === "/api/_probe") {
-      const hint = url.searchParams.get("hint") as DurableObjectLocationHint | null;
-      const out: string[] = [];
-      const r = await fetch("https://lichess.org/api/user/YasinEmrah", { headers: { "User-Agent": "lichess-profile (+https://lichess.erhan.dev)" } });
-      out.push("worker " + r.status + " " + (req.cf?.colo ?? "") + (env.LICHESS_TOKEN ? " token" : " no-token"));
-      for (const h of ["weur", "eeur", "enam", "wnam", "apac"] as DurableObjectLocationHint[]) {
-        if (hint && hint !== h) continue;
-        const stub = env.PROFILE.get(env.PROFILE.idFromName("_probe_" + h + Date.now()), { locationHint: h });
-        out.push(h + " " + await stub.probe().catch(e => String(e)));
-      }
-      return new Response(out.join("\n"));
-    }
-
     if (path === "/go") {
-      const u = (url.searchParams.get("u") ?? "").trim().replace(/^@/, "").replace(/^https?:\/\/lichess\.org\/@\//, "");
-      if (!USERNAME_RE.test(u)) return html(messagePage("Geçersiz kullanıcı adı", "Lichess kullanıcı adları harf, rakam, alt çizgi ve tire içerir.", u), 400);
+      const u = (url.searchParams.get("u") ?? "").trim().replace(/^https?:\/\/lichess\.org\/@\//, "").replace(/^@/, "");
+      if (!USERNAME_RE.test(u)) return invalidName(u);
       return Response.redirect(`${url.origin}/@/${u}`, 302);
     }
 
     if ((m = path.match(/^\/@\/([^/]+)\/?$/))) {
       const name = m[1];
-      if (!USERNAME_RE.test(name)) return html(messagePage("Geçersiz kullanıcı adı", "Lichess kullanıcı adları harf, rakam, alt çizgi ve tire içerir.", name), 400);
+      if (!USERNAME_RE.test(name)) return invalidName(name);
       const { state, stats } = (await profile(env, name).view(name)) as View;
       if (stats) {
         if (state.name !== name) return Response.redirect(`${url.origin}/@/${state.name}`, 301);
         return html(profilePage(stats, state));
       }
-      if (state.status === "missing") return html(messagePage("Kullanıcı bulunamadı", `Lichess'te <b>${name.replace(/[<>&"]/g, "")}</b> adında bir hesap yok.`, name), 404);
+      if (state.status === "missing") return html(messagePage("Kullanıcı bulunamadı", `Lichess'te <b>${name}</b> adında bir hesap yok.`, name), 404);
       if (state.status === "closed") return html(messagePage("Hesap kapalı", "Bu Lichess hesabı kapatılmış veya kural ihlali nedeniyle işaretlenmiş.", name), 410);
-      if (state.status === "error") return html(messagePage("Bir sorun oluştu", "Lichess'e şu an ulaşılamıyor. Birazdan tekrar dene.", name), 503);
       return html(loadingPage(state));
     }
 
     if ((m = path.match(/^\/api\/status\/([^/]+)$/)) && USERNAME_RE.test(m[1])) {
       const s = await profile(env, m[1]).status();
-      return s ? json({ status: s.status, name: s.name, fetched: s.fetched, expected: s.expected, waitUntil: s.waitUntil ?? null, updatedAt: s.updatedAt })
-        : json({ status: "unknown" }, 404);
+      return s ? json(publicState(s)) : json({ status: "unknown" }, 404);
+    }
+
+    if ((m = path.match(/^\/api\/ingest\/([^/]+)$/)) && USERNAME_RE.test(m[1]) && req.method === "POST") {
+      if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY) return json({ error: "too large" }, 413);
+      let body: Ingest;
+      try {
+        body = await req.json();
+      } catch {
+        return json({ error: "bad json" }, 400);
+      }
+      if (typeof body?.since !== "number") return json({ error: "since required" }, 400);
+      const r = await profile(env, m[1]).ingest(body);
+      if (!r.ok) return json({ error: r.error, state: r.state && publicState(r.state) }, r.code);
+      return json(publicState(r.state));
     }
 
     if ((m = path.match(/^\/api\/refresh\/([^/]+)$/)) && USERNAME_RE.test(m[1]) && req.method === "POST") {
-      const s = await profile(env, m[1]).refresh().catch(() => null);
-      return s ? json({ status: s.status, fetched: s.fetched, expected: s.expected }) : json({ status: "unknown" }, 404);
+      const s = await profile(env, m[1]).refresh();
+      return s ? json(publicState(s)) : json({ status: "unknown" }, 404);
     }
 
     if ((m = path.match(/^\/api\/stats\/([^/]+)\.json$/)) && USERNAME_RE.test(m[1])) {

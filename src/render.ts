@@ -23,8 +23,8 @@ function layout(p: Layout) {
 ${p.noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta name="theme-color" content="#120f0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css?v=4">
-<script src="/app.js?v=4" defer></script>
+<link rel="stylesheet" href="/style.css?v=5">
+<script src="/app.js?v=5" defer></script>
 </head><body class="${p.cls ?? ""}">${p.body}</body></html>`;
 }
 
@@ -71,9 +71,10 @@ export function loadingPage(state: State) {
     desc: `${state.name} için Lichess oyunları indiriliyor.`,
     path: `/@/${state.name}`, cls: "home", noindex: true,
     body: `<main class="wrap narrow">${brand}
-<div class="loading" data-poll="${esc(state.id)}">
+<div class="loading" data-import="${esc(state.id)}">
 <h1 class="home-h">${esc(state.name)}</h1>
-<p class="lead">Oyunlar Lichess'ten indiriliyor. Lichess saniyede yaklaşık 20 oyun verdiği için büyük hesaplar birkaç dakika sürebilir; bu sayfayı kapatsan da hazırlık devam eder.</p>
+<p class="lead">Oyunlar tarayıcın üzerinden Lichess'ten indirilip kaydediliyor. Lichess saniyede yaklaşık 20 oyun verdiği için büyük hesaplar birkaç dakika sürebilir. <b>Bu sayfa açık kalmalı</b>; kapatırsan kaldığı yerden devam eder.</p>
+<noscript><p class="lead">İndirme için JavaScript gerekiyor.</p></noscript>
 <div class="bar"><i style="width:${pctDone}%"></i></div>
 <p class="prog"><b data-fetched>${fmt(state.fetched)}</b> / <span data-expected>${fmt(state.expected)}</span> oyun <span class="muted" data-note></span></p>
 </div></main>`,
@@ -146,7 +147,7 @@ export function profilePage(st: Stats, state: State) {
   const pieceMax = Math.max(1, ...Object.values(ms.pieces));
   const perfRows = st.perfs.filter(p => p.n >= 3).map(p => `<tr><td class="pn">${PERF_NAMES[p.key] ?? p.key}</td><td class="num">${fmt(p.n)}</td><td class="barc">${wdl(p)}</td><td class="num s">${pct(p.s)}</td><td class="num">${p.cur ?? "–"}</td><td class="num gold">${p.peak ?? "–"}</td></tr>`).join("");
   const hours = Math.round(u.playTime / 3600);
-  const canRefresh = Date.now() - state.updatedAt > 3600_000;
+  const canRefresh = state.status === "ready" && Date.now() - state.updatedAt > 3600_000;
   const sub = [u.location && esc(u.location), `<a href="https://lichess.org/@/${esc(name)}" target="_blank" rel="noopener">lichess.org/@/${esc(name)}</a>`].filter(Boolean).join(" · ");
 
   const body = `<div class="wrap" id="card">
@@ -157,7 +158,7 @@ export function profilePage(st: Stats, state: State) {
 <div class="hsub">${u.realName ? `<b>${esc(name)}</b> · ` : ""}${sub}</div></div></div>
 <div class="hr">Üyelik <b>${date(u.createdAt)}</b><br>Veri ${date(st.first)} – ${date(st.last)}<br><span class="muted">Güncellendi ${date(state.updatedAt)}</span></div></header>
 
-<div class="share" data-name="${esc(name)}" data-title="${esc(fullTitle)} — Lichess istatistikleri">
+<div class="share" data-name="${esc(name)}" data-id="${esc(u.id)}" data-fetched="${state.fetched}"${state.status === "importing" ? " data-importing=\"1\"" : ""} data-title="${esc(fullTitle)} — Lichess istatistikleri">
 <button data-act="share" class="primary">Paylaş</button><button data-act="copy">Linki kopyala</button>
 <a data-act="wa" target="_blank" rel="noopener">WhatsApp</a><a data-act="x" target="_blank" rel="noopener">X</a>
 <button data-act="png">Görsel indir</button>
