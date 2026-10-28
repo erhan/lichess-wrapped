@@ -3,6 +3,7 @@ import { toGame, type Game } from "./game";
 import type { LichessUser } from "./lichess";
 import { Aggregator, type Stats } from "./stats";
 import { renderOg } from "./og";
+import { digest } from "./community";
 import type { Lang } from "./i18n";
 import type { Env } from "./index";
 
@@ -171,7 +172,7 @@ export class Profile extends DurableObject<Env> {
     await reg.upsert({
       id: state.id, name: user.username, title: user.title ?? null, flag: user.profile?.flag ?? null,
       games: stats.all.n, score: stats.all.s, blitz: user.perfs?.blitz?.rating ?? null, updatedAt: state.updatedAt,
-    });
+    }, digest(stats));
   }
 
   // Nothing is scheduled any more; this absorbs alarms left by the earlier server-side importer.

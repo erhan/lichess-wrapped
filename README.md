@@ -22,7 +22,7 @@ Yayın adresi: **https://lichess.erhan.dev**
 - Sunucu doğrulaması: hesap adı eşleşmeli, her oyunda o kullanıcı oynamış olmalı, oyun kimliği 8 karakter olmalı, tarihler artan sırada olmalı ve gelecekte olmamalı. Kayıtlı oyunlar silinip değiştirilemez; güncelleme yalnızca imleçten sonrasını ekler. Sunucu Lichess'e ulaşamadığı için verinin gerçekten Lichess'ten geldiğini kanıtlayamaz; ilk içe aktarmayı yapan istemci sahte veri gönderebilir.
 - İndirme sayfa açıkken sürer; sayfa kapanırsa sonraki ziyaretçi kaldığı yerden devam ettirir. 24 saatten eski bir profil açıldığında tarayıcı arka planda yeni oyunları ekler; **Güncelle** düğmesi saatte bir kullanılabilir.
 - İstatistikler içe aktarma bitince bir kez hesaplanıp saklanır; sayfa her istekte bu özetten üretilir. Paylaşım kartı (`workers-og`) istatistik sürümü başına bir kez üretilip saklanır.
-- `Registry` nesnesi ana sayfadaki profil listesini tutar.
+- `Registry` nesnesi ana sayfadaki profil listesini ve her profilin kısa özetini (`src/community.ts`) tutar; ana sayfadaki topluluk istatistikleri ve sıralamalar bu özetlerden hesaplanır.
 - Isı haritası UTC olarak saklanır, tarayıcıda ziyaretçinin saat dilimine çevrilir.
 - **Dil:** Türkçe ve İngilizce (`src/i18n.ts`). Sıra: `?lang=tr|en` (çereze yazılır), `lang` çerezi, tarayıcının ilk dili. Paylaşım kartı da `?lang=` ile iki dilde üretilir.
 - **Tema:** koyu ve açık; seçim yoksa sistem ayarına uyar, seçim `localStorage`'da tutulur (`public/style.css` başındaki değişkenler).

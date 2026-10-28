@@ -1,11 +1,12 @@
 import type { Stats, Rec, Named } from "./stats";
 import type { State } from "./profile";
-import type { Entry } from "./registry";
+import type { Home } from "./registry";
+import { MIN_ACC_GAMES, type Community, type Row } from "./community";
 import { DICTS, LANGS, fill, type Lang, type Dict } from "./i18n";
 import { fmt, dec, pct, date, isoDate, month, esc, flag, PIECE_GLYPHS } from "./format";
 
 export const ORIGIN = "https://lichess.erhan.dev";
-const ASSET_V = 7;
+const ASSET_V = 8;
 
 interface Layout { lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string; noindex?: boolean; search?: boolean }
 
@@ -60,7 +61,7 @@ function searchForm(t: Dict, value = "", big = false) {
 const titleTag = (t?: string | null) => t ? `<span class="tag">${esc(t)}</span>` : "";
 const footer = (left: string, right = "lichess.erhan.dev") => `<footer class="foot"><span>${left}</span><span>${right}</span></footer>`;
 
-export function homePage(lang: Lang, reg: { total: number; recent: Entry[] }) {
+export function homePage(lang: Lang, reg: Home) {
   const t = DICTS[lang];
   const cards = reg.recent.map(e => `<a class="pcard" href="/@/${esc(e.name)}">
 <span class="mono">${esc(e.name[0].toUpperCase())}</span>
@@ -71,7 +72,7 @@ export function homePage(lang: Lang, reg: { total: number; recent: Entry[] }) {
     .map(([h, d], i) => `<div class="step"><span class="step-n">${i + 1}</span><h3>${h}</h3><p>${d}</p></div>`).join("");
   return layout({
     lang, title: t.homeTitle, desc: t.homeDesc, path: "/", cls: "home",
-    body: `<main class="wrap narrow">
+    body: `<main class="wrap">
 <section class="hero-home"><div class="board" aria-hidden="true"></div>
 <h1 class="home-h">${t.homeH1a} <em>${t.homeH1b}</em></h1>
 <p class="lead">${t.homeLead}</p>
@@ -79,6 +80,7 @@ ${searchForm(t, "", true)}
 ${examples ? `<div class="examples">${examples}</div>` : ""}
 </section>
 <section class="how"><h2 class="sec">${t.howTitle}</h2><div class="steps">${steps}</div></section>
+${reg.community ? communitySection(lang, reg.community) : ""}
 ${reg.recent.length ? `<section><h2 class="sec">${t.recent} <span class="muted">${fill(t.profilesCount, { n: fmt(reg.total, lang) })}</span></h2><div class="pgrid">${cards}</div></section>` : ""}
 ${footer(t.dataFrom)}</main>`,
   });
@@ -150,6 +152,55 @@ function yearChart(years: Stats["years"], lang: Lang) {
   return `<svg class="chart" viewBox="0 0 ${W} ${H}">${out.join("")}</svg>`;
 }
 
+function openingList(list: Named[], lang: Lang) {
+  const t = DICTS[lang];
+  const mx = Math.max(...list.map(o => o.n));
+  return list.map(o => `<div class="op"><div class="opn" title="${esc(o.name)}">${esc(o.name)}</div><div class="opb"><div style="width:${(o.n / mx * 100).toFixed(1)}%">${wdl(o, t, 8)}</div></div><div class="num">${fmt(o.n, lang)}</div><div class="num s">${pct(o.s, lang)}</div></div>`).join("");
+}
+
+function results(r: { all: Rec; white: Rec; black: Rec }, lang: Lang, extra = "") {
+  const t = DICTS[lang];
+  const f = (n: number) => fmt(n, lang);
+  return `<div class="res">${donut(r.all, lang)}<div class="rb">
+<div class="big3"><div class="cw"><b class="num">${f(r.all.W)}</b><span>${t.win}</span></div><div class="cd"><b class="num">${f(r.all.D)}</b><span>${t.draw}</span></div><div class="cl"><b class="num">${f(r.all.L)}</b><span>${t.loss}</span></div></div>
+<div class="colrow"><span>♔ ${t.white}</span>${wdl(r.white, t)}<span class="num s">${pct(r.white.s, lang, 1)}</span></div>
+<div class="colrow"><span>♚ ${t.black}</span>${wdl(r.black, t)}<span class="num s">${pct(r.black.s, lang, 1)}</span></div>
+${extra}</div></div>`;
+}
+
+function board(title: string, rows: Row[], value: (r: Row) => string, sub?: (r: Row) => string, note = "") {
+  const list = rows.map((r, i) => `<div class="lb"><span class="lb-n">${i + 1}</span><span class="lb-p"><a href="/@/${esc(r.name)}">${titleTag(r.title)}<b>${esc(r.name)}</b></a>${sub ? `<small class="muted">${sub(r)}</small>` : ""}</span><span class="num gold">${value(r)}</span></div>`).join("");
+  return card(title, (list || `<p class="muted">–</p>`) + (note ? `<div class="muted note">${note}</div>` : ""));
+}
+
+function communitySection(lang: Lang, c: Community) {
+  const t = DICTS[lang];
+  const f = (n: number) => fmt(n, lang);
+  const b = c.boards;
+  return `<section class="community"><h2 class="sec">${t.community} <span class="muted">${fill(t.communitySub, { n: f(c.profiles) })}</span></h2>
+<div class="kpis">
+${kpi(f(c.profiles), t.cProfiles, t.cProfilesSub)}
+${kpi(f(c.all.n), t.kGames, "")}
+${kpi(f(c.all.W), t.kWins, pct(c.all.n ? c.all.W / c.all.n * 100 : 0, lang, 1), "win")}
+${kpi(f(c.own), t.cMoves, t.cMovesSub)}
+${kpi(f(c.hours), t.kHours, fill(t.kHoursSub, { n: f(c.hours / 24) }))}
+${kpi(f(c.mate), t.cMates, t.cMatesSub)}
+</div>
+<div class="grid g2">
+${card(t.results, results(c, lang))}
+${card(t.cWhen, `<div class="heat" data-heat="${c.heat.join(",")}"></div>`, ` <span class="muted lc" data-tzlabel></span>`)}
+</div>
+<div class="grid">${card(t.cOpenings, openingList(c.openings, lang) + `<div class="muted note">${t.cOpeningsNote}</div>`)}</div>
+<div class="grid g3">
+${board(t.lbGames, b.games, r => f(r.value))}
+${board(t.lbRating, b.rating, r => String(r.value), r => t.perf[r.note!] ?? esc(r.note))}
+${board(t.lbStreak, b.streak, r => fill(t.lbStreakUnit, { n: r.value }))}
+${board(t.lbHours, b.hours, r => fill(t.lbHoursUnit, { n: f(r.value) }))}
+${board(t.lbAcc, b.acc, r => pct(r.value, lang, 1), r => fill(t.lbAccNote, { n: f(Number(r.note)) }), fill(t.lbAccMin, { n: MIN_ACC_GAMES }))}
+${board(t.lbScalp, b.scalp, r => String(r.value), r => `${r.title2 ? `${esc(r.title2)} ` : ""}<a href="https://lichess.org/${esc(r.link)}" target="_blank" rel="noopener">${esc(r.note)}</a>`)}
+</div></section>`;
+}
+
 const kpi = (v: string, label: string, sub = "", accent = "gold") => `<div class="kpi k-${accent}"><div class="kv">${v}</div><div class="kl">${label}</div>${sub ? `<div class="ks">${sub}</div>` : ""}</div>`;
 const card = (title: string, inner: string, extra = "") => `<section class="card"><h2>${title}${extra}</h2>${inner}</section>`;
 
@@ -171,11 +222,7 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
   const gameLink = (id: string, text: string) => `<a href="https://lichess.org/${esc(id)}" target="_blank" rel="noopener">${text}</a>`;
   const moveList = (l: [string, number][], prefix: string) => l.slice(0, 4).map(([m, v]) => `<b>${prefix}${esc(m)}</b> ${p(v)}`).join(" · ");
 
-  const openingRows = (list: Named[]) => {
-    if (!list.length) return none;
-    const mx = Math.max(...list.map(o => o.n));
-    return list.map(o => `<div class="op"><div class="opn" title="${esc(o.name)}">${esc(o.name)}</div><div class="opb"><div style="width:${(o.n / mx * 100).toFixed(1)}%">${wdl(o, t, 8)}</div></div><div class="num">${f(o.n)}</div><div class="num s">${p(o.s)}</div></div>`).join("");
-  };
+  const openingRows = (list: Named[]) => list.length ? openingList(list, lang) : none;
   const endRows = (list: [string, number][], cls: string) => list.filter(([, v]) => v >= 0.5)
     .map(([k, v]) => `<div class="tr"><span>${t.end[k] ?? esc(k)}</span><div class="tb"><i class="b${cls}" style="width:${v}%"></i></div><b>${p(v)}</b></div>`).join("");
   const perfRows = st.perfs.filter(r => r.n >= 3).map(r => `<tr><td class="pn">${t.perf[r.key] ?? esc(r.key)}</td><td class="num">${f(r.n)}</td><td class="barc">${wdl(r, t)}</td><td class="num s">${p(r.s)}</td><td class="num">${r.cur ?? "–"}</td><td class="num gold">${r.peak ?? "–"}</td></tr>`).join("");
@@ -205,13 +252,8 @@ ${kpi(st.accuracy ? p(st.accuracy.avg, 1) : "–", t.kAcc, st.accuracy ? fill(t.
 </div>
 
 <div class="grid g-res">
-${card(t.results, `<div class="res">${donut(st.all, lang)}<div class="rb">
-<div class="big3"><div class="cw"><b class="num">${f(st.all.W)}</b><span>${t.win}</span></div><div class="cd"><b class="num">${f(st.all.D)}</b><span>${t.draw}</span></div><div class="cl"><b class="num">${f(st.all.L)}</b><span>${t.loss}</span></div></div>
-<div class="colrow"><span>♔ ${t.white}</span>${wdl(st.white, t)}<span class="num s">${p(st.white.s, 1)}</span></div>
-<div class="colrow"><span>♚ ${t.black}</span>${wdl(st.black, t)}<span class="num s">${p(st.black.s, 1)}</span></div>
-<div class="colrow"><span>${t.rated}</span>${wdl(st.rated, t)}<span class="num s">${p(st.rated.s, 1)}</span></div>
-<div class="muted note">${fill(t.colorNote, { w: f(st.white.n), b: f(st.black.n), c: f(st.casual.n) })}</div>
-</div></div>`)}
+${card(t.results, results(st, lang, `<div class="colrow"><span>${t.rated}</span>${wdl(st.rated, t)}<span class="num s">${p(st.rated.s, 1)}</span></div>
+<div class="muted note">${fill(t.colorNote, { w: f(st.white.n), b: f(st.black.n), c: f(st.casual.n) })}</div>`))}
 ${card(t.byTempo, `<div class="tscroll"><table><tr><th>${t.thTempo}</th><th>${t.thGames}</th><th class="barh">${t.thWdl}</th><th>${t.thScore}</th><th>${t.thNow}</th><th>${t.thPeak}</th></tr>${perfRows}</table></div>
 <div class="legend"><span class="cw">${t.winC}</span><span class="cd">${t.drawC}</span><span class="cl">${t.lossC}</span></div>`)}
 </div>

@@ -79,7 +79,7 @@ a:hover{color:var(--gold)}
 .search button,.share button,.share a{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:11px;font:inherit;font-size:14px;font-weight:600;padding:9px 16px;cursor:pointer;white-space:nowrap}
 .search button,.share .primary{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .search button:hover,.share button:hover,.share a:hover{filter:brightness(1.07);color:inherit}
-.search.big{padding:7px 7px 7px 18px;border-radius:18px}.search.big input{font-size:18px;padding:10px 6px}.search.big button{font-size:16px;padding:13px 24px;border-radius:13px}.search.big .s-ico{font-size:22px}
+.search.big{padding:7px 7px 7px 18px;border-radius:18px;max-width:720px}.search.big input{font-size:18px;padding:10px 6px}.search.big button{font-size:16px;padding:13px 24px;border-radius:13px}.search.big .s-ico{font-size:22px}
 .share .ghost{background:transparent}
 
 /* home */
@@ -99,6 +99,12 @@ a:hover{color:var(--gold)}
 .step{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
 .step-n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--tagbg);color:var(--gold);font-weight:800;font-size:14px;margin-bottom:14px}
 .step h3{font-size:16px;margin-bottom:6px}.step p{color:var(--muted);font-size:14px;line-height:1.55}
+.lb{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line2);font-size:15px}
+.lb:first-of-type{border-top:none}
+.lb-n{color:var(--dim);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.lb-p{min-width:0;display:flex;flex-direction:column;gap:2px}
+.lb-p>a,.lb-p small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-p .tag{margin-right:6px}.lb-p small{font-size:12px}.lb-p small a{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:2px}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
 .pcard{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
 .pcard:hover{border-color:var(--gold);color:inherit;transform:translateY(-2px)}

@@ -53,7 +53,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   let m: RegExpMatchArray | null;
 
   if (path === "/") {
-    const reg = await env.REGISTRY.get(env.REGISTRY.idFromName("main")).recent(12);
+    const reg = await env.REGISTRY.get(env.REGISTRY.idFromName("main")).home(12);
     return html(homePage(lang, reg));
   }
 
