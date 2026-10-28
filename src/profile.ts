@@ -3,6 +3,7 @@ import { toGame, type Game } from "./game";
 import type { LichessUser } from "./lichess";
 import { Aggregator, type Stats } from "./stats";
 import { renderOg } from "./og";
+import type { Lang } from "./i18n";
 import type { Env } from "./index";
 
 export const STALE_MS = 24 * 3600_000;
@@ -177,13 +178,13 @@ export class Profile extends DurableObject<Env> {
   async alarm() {}
 
   // Share card for link previews, rendered once per stats version.
-  async og(): Promise<ArrayBuffer | null> {
+  async og(lang: Lang): Promise<ArrayBuffer | null> {
     const stats = this.get<Stats>("stats");
     if (!stats) return null;
-    const key = String(stats.generatedAt);
+    const key = `${stats.generatedAt}:${lang}`;
     const row = this.sql.exec<{ png: ArrayBuffer }>("SELECT png FROM images WHERE k = ?", key).toArray()[0];
     if (row) return row.png;
-    const png = await renderOg(stats);
+    const png = await renderOg(stats, lang);
     this.sql.exec("INSERT OR REPLACE INTO images (k, png) VALUES (?, ?)", key, png);
     return png;
   }

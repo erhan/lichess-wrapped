@@ -24,6 +24,9 @@ Yayın adresi: **https://lichess.erhan.dev**
 - İstatistikler içe aktarma bitince bir kez hesaplanıp saklanır; sayfa her istekte bu özetten üretilir. Paylaşım kartı (`workers-og`) istatistik sürümü başına bir kez üretilip saklanır.
 - `Registry` nesnesi ana sayfadaki profil listesini tutar.
 - Isı haritası UTC olarak saklanır, tarayıcıda ziyaretçinin saat dilimine çevrilir.
+- **Dil:** Türkçe ve İngilizce (`src/i18n.ts`). Sıra: `?lang=tr|en` (çereze yazılır), `lang` çerezi, tarayıcının ilk dili. Paylaşım kartı da `?lang=` ile iki dilde üretilir.
+- **Tema:** koyu ve açık; seçim yoksa sistem ayarına uyar, seçim `localStorage`'da tutulur (`public/style.css` başındaki değişkenler).
+- **Bulmacalar:** yükleme ekranında Lichess bulmaca veritabanından (CC0) seçilmiş 1.000 bulmaca (`public/puzzles.json`, puan 503–2799, 23 bantta eşit dağılım) tahtada çözülebilir. Liste `scripts/pick-puzzles.py` ile yeniden üretilir. Taşlar: cburnett seti (Colin M.L. Burnett, GPL/BSD/GFDL), `public/pieces`.
 
 ## Geliştirme
 
