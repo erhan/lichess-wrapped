@@ -182,7 +182,12 @@ function initShare(bar) {
       try {
         if (!window.htmlToImage) await loadScript("https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js");
         document.body.classList.add("capturing");
-        const data = await window.htmlToImage.toPng($("#card"), { pixelRatio: 2, backgroundColor: "#120f0b", cacheBust: true });
+        // The card is centred with auto margins; the clone keeps them, which shifts the image and cuts off its right side.
+        const card = $("#card");
+        const data = await window.htmlToImage.toPng(card, {
+          pixelRatio: 2, backgroundColor: "#120f0b", cacheBust: true,
+          width: card.offsetWidth, height: card.offsetHeight, style: { margin: "0" },
+        });
         const a = document.createElement("a");
         a.href = data; a.download = `${bar.dataset.name}-lichess.png`; a.click();
         say("Görsel indirildi");

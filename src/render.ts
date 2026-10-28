@@ -23,8 +23,8 @@ function layout(p: Layout) {
 ${p.noindex ? '<meta name="robots" content="noindex">' : ""}
 <meta name="theme-color" content="#120f0b">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="/style.css?v=5">
-<script src="/app.js?v=5" defer></script>
+<link rel="stylesheet" href="/style.css?v=6">
+<script src="/app.js?v=6" defer></script>
 </head><body class="${p.cls ?? ""}">${p.body}</body></html>`;
 }
 
