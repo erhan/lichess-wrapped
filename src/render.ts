@@ -65,6 +65,15 @@ function searchForm(t: Dict, value = "", big = false) {
 <button type="submit">${t.analyze}</button></form>`;
 }
 
+// Profile pictures for a few accounts (Lichess has none), keyed by lowercase id.
+const AVATARS: Record<string, string> = {
+  seyyah1061: "https://images.chesscomfiles.com/uploads/v1/user/2711034.ff8b4a66.200x200o.f55cc5f00e64.jpg",
+};
+const initial = (name: string) => {
+  const src = AVATARS[name.toLowerCase()];
+  return src ? `<img src="${src}" alt="" crossorigin="anonymous">` : esc(name[0].toUpperCase());
+};
+
 const titleTag = (t?: string | null) => t ? `<span class="tag">${esc(t)}</span>` : "";
 const GITHUB = "https://github.com/erhan/lichess-wrapped";
 const GH_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
@@ -74,7 +83,7 @@ const footer = (left: string, right = "lichess.erhan.dev") =>
 export function homePage(lang: Lang, reg: Home) {
   const t = DICTS[lang];
   const cards = reg.recent.map(e => `<a class="pcard" href="/@/${esc(e.name)}">
-<span class="mono">${esc(e.name[0].toUpperCase())}</span>
+<span class="mono">${initial(e.name)}</span>
 <span class="pc-n">${titleTag(e.title)}<b>${esc(e.name)}</b> ${flag(e.flag)}</span>
 <span class="pc-s">${fill(t.nGames, { n: fmt(e.games, lang) })} · ${pct(e.score, lang)}${e.blitz ? ` · blitz ${e.blitz}` : ""}</span></a>`).join("");
   const examples = reg.recent.slice(0, 3).map(e => `<a href="/@/${esc(e.name)}">${esc(e.name)}</a>`).join("");
@@ -244,7 +253,7 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
 
   const body = `<main class="wrap" id="card">
 <header class="hero">
-<div class="who"><div class="ph"><span>${esc(name[0].toUpperCase())}</span></div><div class="who-t">
+<div class="who"><div class="ph"><span>${initial(name)}</span></div><div class="who-t">
 <div class="eyebrow">${t.eyebrow}</div>
 <h1>${titleTag(u.title)}${esc(u.realName || name)} <span class="fl">${flag(u.flag)}</span></h1>
 <div class="hsub">${u.realName ? `<b>${esc(name)}</b> · ` : ""}${sub}</div>

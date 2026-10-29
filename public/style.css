@@ -126,7 +126,7 @@ a:hover{color:var(--gold)}
 .hsub{color:var(--muted);margin-top:8px;font-size:15px}.hsub b{color:var(--text)}.hsub a{text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
 .who{display:flex;align-items:center;gap:24px;min-width:0}
 .ph{width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--gold),var(--gold2));flex:none;box-shadow:0 10px 36px var(--glow1)}
-.ph span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;border:4px solid var(--card);background:var(--card2);font-size:48px;font-weight:800;color:var(--gold)}
+.ph img,.mono img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}.ph span{overflow:hidden;display:grid;place-items:center;width:100%;height:100%;border-radius:50%;border:4px solid var(--card);background:var(--card2);font-size:48px;font-weight:800;color:var(--gold)}
 .hdates{margin-top:8px;font-size:13px;color:var(--dim)}.hdates b{color:var(--muted);font-weight:600}
 .hr{display:grid;grid-template-columns:repeat(2,auto);gap:14px 30px;flex:none;text-align:right}
 .hr dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:600}
