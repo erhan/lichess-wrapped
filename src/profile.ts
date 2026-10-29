@@ -79,6 +79,11 @@ export class Profile extends DurableObject<Env> {
     return { state, stats: this.get<Stats>("stats") };
   }
 
+  // Drops everything stored for the account; used when its owner asks for removal.
+  async erase() {
+    await this.ctx.storage.deleteAll();
+  }
+
   async status(): Promise<State | null> {
     return this.get<State>("state");
   }

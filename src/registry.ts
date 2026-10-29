@@ -36,6 +36,11 @@ export class Registry extends DurableObject<Env> {
     this.community = undefined;
   }
 
+  async remove(id: string) {
+    this.sql.exec("DELETE FROM profiles WHERE id = ?", id);
+    this.community = undefined;
+  }
+
   async recent(limit = 12): Promise<{ total: number; recent: Entry[] }> {
     const total = this.sql.exec<{ n: number }>("SELECT COUNT(*) AS n FROM profiles").one().n;
     const recent = this.sql.exec<any>("SELECT * FROM profiles ORDER BY updated_at DESC LIMIT ?", limit).toArray()

@@ -1,4 +1,4 @@
-import { USERNAME_RE } from "./lichess";
+import { removedSet, USERNAME_RE } from "./lichess";
 import { homePage, loadingPage, messagePage, profilePage, sitemap } from "./render";
 import { DICTS, fill, pickLang, type Lang } from "./i18n";
 import { esc } from "./format";
@@ -12,6 +12,7 @@ export interface Env {
   PROFILE: DurableObjectNamespace<Profile>;
   REGISTRY: DurableObjectNamespace<Registry>;
   ASSETS: Fetcher;
+  REMOVED?: string;
 }
 
 const MAX_BODY = 8 << 20;
@@ -50,6 +51,8 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   const path = decodeURIComponent(url.pathname);
   const { lang } = pickLang(req, url);
   const t = DICTS[lang];
+  const removed = removedSet(env.REMOVED);
+  const allowed = (name: string) => USERNAME_RE.test(name) && !removed.has(name.toLowerCase());
   let m: RegExpMatchArray | null;
 
   if (path === "/") {
@@ -71,6 +74,11 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   if ((m = path.match(/^\/@\/([^/]+)\/?$/))) {
     const name = m[1];
     if (!USERNAME_RE.test(name)) return invalidName(lang, name);
+    if (removed.has(name.toLowerCase())) {
+      // Erasing again is harmless and covers anything stored before the account was listed.
+      await Promise.all([profile(env, name).erase(), env.REGISTRY.get(env.REGISTRY.idFromName("main")).remove(name.toLowerCase())]);
+      return html(messagePage(lang, t.removedTitle, t.removedText), 410);
+    }
     const { state, stats } = (await profile(env, name).view(name)) as View;
     if (stats) {
       if (state.name !== name) return Response.redirect(`${url.origin}/@/${state.name}${url.search}`, 301);
@@ -81,12 +89,12 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return html(loadingPage(lang, state));
   }
 
-  if ((m = path.match(/^\/api\/status\/([^/]+)$/)) && USERNAME_RE.test(m[1])) {
+  if ((m = path.match(/^\/api\/status\/([^/]+)$/)) && allowed(m[1])) {
     const s = await profile(env, m[1]).status();
     return s ? json(publicState(s)) : json({ status: "unknown" }, 404);
   }
 
-  if ((m = path.match(/^\/api\/ingest\/([^/]+)$/)) && USERNAME_RE.test(m[1]) && req.method === "POST") {
+  if ((m = path.match(/^\/api\/ingest\/([^/]+)$/)) && allowed(m[1]) && req.method === "POST") {
     if (Number(req.headers.get("content-length") ?? 0) > MAX_BODY) return json({ error: "too large" }, 413);
     let body: Ingest;
     try {
@@ -100,18 +108,18 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return json(publicState(r.state));
   }
 
-  if ((m = path.match(/^\/api\/refresh\/([^/]+)$/)) && USERNAME_RE.test(m[1]) && req.method === "POST") {
+  if ((m = path.match(/^\/api\/refresh\/([^/]+)$/)) && allowed(m[1]) && req.method === "POST") {
     const s = await profile(env, m[1]).refresh();
     return s ? json(publicState(s)) : json({ status: "unknown" }, 404);
   }
 
-  if ((m = path.match(/^\/api\/stats\/([^/]+)\.json$/)) && USERNAME_RE.test(m[1])) {
+  if ((m = path.match(/^\/api\/stats\/([^/]+)\.json$/)) && allowed(m[1])) {
     const s = await profile(env, m[1]).stats();
     return s ? new Response(JSON.stringify(s), { headers: { "content-type": "application/json", "cache-control": "public, max-age=300", "access-control-allow-origin": "*" } })
       : json({ error: "not found" }, 404);
   }
 
-  if ((m = path.match(/^\/og\/([^/]+)\.png$/)) && USERNAME_RE.test(m[1])) {
+  if ((m = path.match(/^\/og\/([^/]+)\.png$/)) && allowed(m[1])) {
     const cache = caches.default;
     const hit = await cache.match(req);
     if (hit) return hit;
