@@ -133,6 +133,10 @@ a:hover{color:var(--gold)}
 .meta dd{font-size:15px;font-weight:600;color:var(--text)}
 .share{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;align-items:center}
 .share .toast{color:var(--win);font-size:14px;margin-left:6px}
+.rt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:14px}
+.rt-h{font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--dim);margin-right:4px;white-space:nowrap}
+.rt-i{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:99px;padding:4px 10px;white-space:nowrap;cursor:default}
+.rt-i b{color:var(--strong);font-weight:700;font-variant-numeric:tabular-nums}
 .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin:20px 0}
 .kpi{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;min-width:0;box-shadow:var(--shadow);overflow:hidden}
 .kpi:before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),transparent)}
@@ -236,6 +240,7 @@ td{padding:9px 0;border-top:1px solid var(--line2)}td.num{text-align:right;paddi
  .brand span:last-child{display:none}
  .hero{padding:20px 18px}
  .meta{grid-template-columns:1fr 1fr}
+ .rt{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-right:-16px;padding-right:16px}.rt::-webkit-scrollbar{display:none}
  .kpis{grid-template-columns:1fr 1fr;gap:10px}.kpi{padding:14px}.kv{font-size:24px}
  .ph{width:78px;height:78px}.ph span{font-size:32px}.who{gap:14px}
  .res{flex-direction:column;gap:14px}.donut{width:190px}

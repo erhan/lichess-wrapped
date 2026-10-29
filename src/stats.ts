@@ -12,6 +12,8 @@ export interface Stats {
     id: string; name: string; title?: string; flag?: string; realName?: string; location?: string;
     createdAt: number; playTime: number;
     perfs: Record<string, { rating?: number; games?: number; prov?: boolean }>;
+    scores?: Record<string, { score: number; runs: number }>; // Puzzle Storm, Racer, Streak
+    fide?: number;
   };
   generatedAt: number;
   first: number; last: number;
@@ -45,7 +47,7 @@ export interface Stats {
 }
 
 // Stored profiles with an older version are rebuilt from their games the next time they are opened.
-export const STATS_VERSION = 2;
+export const STATS_VERSION = 3;
 
 const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
 const TITLES = ["GM", "IM", "FM", "CM", "NM", "WGM", "WIM", "WFM", "WCM", "LM", "BOT"];
@@ -195,6 +197,9 @@ export class Aggregator {
         createdAt: user.createdAt, playTime: user.playTime?.total ?? 0,
         perfs: Object.fromEntries(Object.entries(pf).filter(([, p]) => p.rating != null)
           .map(([k, p]) => [k, { rating: p.rating, games: p.games, prov: p.prov }])),
+        scores: Object.fromEntries(Object.entries(pf).filter(([, p]) => p.score != null)
+          .map(([k, p]) => [k, { score: p.score!, runs: p.runs ?? 0 }])),
+        fide: user.profile?.fideRating,
       },
       generatedAt: Date.now(),
       first: this.firstAt === Infinity ? 0 : this.firstAt, last: this.lastAt,
