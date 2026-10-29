@@ -215,28 +215,7 @@ ${board(t.lbScalp, b.scalp, r => String(r.value), r => `${r.title2 ? `${esc(r.ti
 </div></section>`;
 }
 
-const RATING_ORDER = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence", "chess960", "kingOfTheHill",
-  "threeCheck", "antichess", "atomic", "horde", "racingKings", "crazyhouse", "puzzle"];
-
-// Ratings as Lichess reported them at the last update; "?" marks a provisional rating, as on Lichess.
-function ratings(u: Stats["user"], lang: Lang) {
-  const t = DICTS[lang];
-  const f = (n: number) => fmt(n, lang);
-  const count = (n: number, many: string, one: string) => n === 1 ? one : fill(many, { n: f(n) });
-  const item = (label: string, value: string, tip: string) => `<span class="rt-i" title="${tip}">${label} <b>${value}</b></span>`;
-  const items = RATING_ORDER.flatMap(k => {
-    const p = u.perfs[k];
-    if (!p?.rating || !p.games) return [];
-    const games = k === "puzzle" ? count(p.games, t.nPuzzles, t.onePuzzle) : count(p.games, t.nGames, t.oneGame);
-    return [item(t.perf[k] ?? esc(k), p.rating + (p.prov ? "?" : ""), games + (p.prov ? ` · ${t.provisional}` : ""))];
-  });
-  for (const k of ["storm", "racer", "streak"]) {
-    const s = u.scores?.[k];
-    if (s?.runs) items.push(item(t.perf[k], String(s.score), count(s.runs, t.nRuns, t.oneRun)));
-  }
-  if (u.fide) items.unshift(item("FIDE", String(u.fide), t.fideNote));
-  return items.length ? `<div class="rt"><span class="rt-h">${t.ratings}</span>${items.join("")}</div>` : "";
-}
+const MAIN_PERFS = ["bullet", "blitz", "rapid", "classical"];
 
 const kpi = (v: string, label: string, sub = "", accent = "gold") => `<div class="kpi k-${accent}"><div class="kv">${v}</div><div class="kl">${label}</div>${sub ? `<div class="ks">${sub}</div>` : ""}</div>`;
 const card = (title: string, inner: string, extra = "") => `<section class="card"><h2>${title}${extra}</h2>${inner}</section>`;
@@ -269,11 +248,14 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
 <div class="who"><div class="ph"><span>${esc(name[0].toUpperCase())}</span></div><div class="who-t">
 <div class="eyebrow">${t.eyebrow}</div>
 <h1>${titleTag(u.title)}${esc(u.realName || name)} <span class="fl">${flag(u.flag)}</span></h1>
-<div class="hsub">${u.realName ? `<b>${esc(name)}</b> · ` : ""}${sub}</div></div></div>
-<dl class="meta"><div><dt>${t.member}</dt><dd>${date(u.createdAt, lang)}</dd></div><div><dt>${t.dataRange}</dt><dd>${date(st.first, lang)} – ${date(st.last, lang)}</dd></div><div><dt>${t.updated}</dt><dd>${date(state.updatedAt, lang)}</dd></div></dl>
+<div class="hsub">${u.realName ? `<b>${esc(name)}</b> · ` : ""}${sub}</div>
+<div class="hdates">${t.member} <b>${date(u.createdAt, lang)}</b> · ${t.dataRange} <b>${date(st.first, lang)} – ${date(st.last, lang)}</b> · ${t.updated} <b>${date(state.updatedAt, lang)}</b></div></div></div>
+<dl class="hr">${MAIN_PERFS.map(k => {
+  const p = u.perfs[k];
+  const value = p?.rating && p.games ? p.rating + (p.prov ? `<i title="${t.provisional}">?</i>` : "") : "–";
+  return `<div><dt>${t.perf[k]}</dt><dd>${value}</dd></div>`;
+}).join("")}</dl>
 </header>
-
-${ratings(u, lang)}
 
 <div class="share" data-name="${esc(name)}" data-id="${esc(u.id)}" data-fetched="${state.fetched}"${state.status === "importing" ? ' data-importing="1"' : ""} data-title="${esc(fill(t.statsTitle, { name: fullTitle }))}">
 <button data-act="share" class="primary">${t.share}</button><button data-act="copy">${t.copyLink}</button>
