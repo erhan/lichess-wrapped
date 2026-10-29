@@ -71,3 +71,7 @@ The puzzle set is rebuilt from the Lichess puzzle database with `scripts/pick-pu
 - Puzzles from the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0).
 - Pieces: cburnett set by Colin M.L. Burnett (GPL/BSD/GFDL), as used by Lichess.
 - Font: [Inter](https://rsms.me/inter/) (OFL).
+
+## License
+
+The code is [MIT](LICENSE). Bundled third-party files keep their own licenses: the piece images in `public/pieces` (GPL/BSD/GFDL), the Inter fonts in `public/fonts` (OFL) and the puzzles in `public/puzzles.json` (CC0).
