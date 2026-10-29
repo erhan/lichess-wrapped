@@ -3,10 +3,10 @@ import type { State } from "./profile";
 import type { Home } from "./registry";
 import { MIN_ACC_GAMES, type Community, type Row } from "./community";
 import { DICTS, LANGS, fill, type Lang, type Dict } from "./i18n";
-import { fmt, dec, pct, date, isoDate, month, esc, flag, PIECE_GLYPHS } from "./format";
+import { fmt, dec, pct, date, month, esc, flag, PIECE_GLYPHS } from "./format";
 
 const ORIGIN = "https://lichess.erhan.dev";
-const ASSET_V = 11;
+const ASSET_V = 12;
 
 interface Layout {
   lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string;
@@ -211,7 +211,7 @@ ${kpi(f(c.mate), t.cMates, t.cMatesSub)}
 </div>
 <div class="grid g2">
 ${card(t.results, results(c, lang))}
-${card(t.cWhen, `<div class="heat" data-heat="${c.heat.join(",")}"></div>`, ` <span class="muted lc" data-tzlabel></span>`)}
+${card(t.cWhen, `<div class="parts" data-blocks="${c.blocks.join(",")}"></div>`, ` <span class="muted lc" data-tzlabel></span>`)}
 </div>
 <div class="grid">${card(t.cOpenings, openingList(c.openings, lang) + `<div class="muted note">${t.cOpeningsNote}</div>`)}</div>
 <div class="grid g3">
@@ -289,8 +289,8 @@ ${card(t.byTempo, `<div class="tscroll"><table><tr><th>${t.thTempo}</th><th>${t.
 
 <div class="grid g2">
 ${card(t.byYear, yearChart(st.years, lang))}
-${card(t.when, `<div class="heat" data-heat="${st.heat.join(",")}"></div>
-<div class="muted note">${st.busiestDay ? fill(t.busiest, { d: isoDate(st.busiestDay.date, lang), n: st.busiestDay.n }) : ""}${fill(t.activeDays, { n: f(st.activeDays) })}${st.busiestMonth ? fill(t.busiestMonth, { m: month(st.busiestMonth.month, lang) }) : ""}</div>`, ` <span class="muted lc" data-tzlabel></span>`)}
+${card(t.when, `<div class="parts" data-blocks="${st.blocks.join(",")}"></div>
+<div class="muted note">${fill(t.activeDays, { n: f(st.activeDays) })}${st.busiestMonth ? fill(t.busiestMonth, { m: month(st.busiestMonth.month, lang) }) : ""}</div>`, ` <span class="muted lc" data-tzlabel></span>`)}
 </div>
 
 <div class="grid g2">
@@ -309,7 +309,7 @@ ${card(t.records, `<div class="rec">
 <div><b class="num">${st.longest ? gameLink(st.longest.id, String(st.longest.len)) : "–"}</b><span>${t.rLongest}</span></div>
 <div><b class="num">${st.quickMate ? gameLink(st.quickMate.id, String(st.quickMate.len)) : "–"}</b><span>${t.rQuick}</span></div>
 <div><b class="num">${dec(ms.avgLen, lang)}</b><span>${t.rAvg}</span></div>
-<div><b class="num">${st.busiestDay?.n ?? "–"}</b><span>${t.rDay}</span></div>
+<div><b class="num">${st.maxDay || "–"}</b><span>${t.rDay}</span></div>
 </div>`)}
 </div>
 

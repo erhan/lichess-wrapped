@@ -26,8 +26,8 @@ export interface Stats {
   quickMate?: { id: string; len: number };
   ends: { W: [string, number][]; L: [string, number][]; D: [string, number][] };
   years: (Rec & { year: number })[];
-  heat: number[];                 // 7*24 cells, UTC, Monday first
-  busiestDay?: { date: string; n: number };
+  blocks: number[];               // games per 3-hour block of the day, UTC; no weekdays, so play times stay coarse
+  maxDay: number;                 // most games on a single day
   activeDays: number;
   busiestMonth?: { month: string; n: number };
   openings: { white: Named[]; black: Named[] };
@@ -44,7 +44,7 @@ export interface Stats {
 }
 
 // Stored profiles with an older version are rebuilt from their games the next time they are opened.
-export const STATS_VERSION = 3;
+export const STATS_VERSION = 4;
 
 const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
 const TITLES = ["GM", "IM", "FM", "CM", "NM", "WGM", "WIM", "WFM", "WCM", "LM", "BOT"];
@@ -80,7 +80,7 @@ export class Aggregator {
   private longest?: Game; private quick?: Game;
   private ends = { W: new Counter<string>(), L: new Counter<string>(), D: new Counter<string>() };
   private years = new Grouped<number>();
-  private heat = new Array<number>(168).fill(0);
+  private blocks = new Array<number>(8).fill(0);
   private days = new Counter<string>(); private months = new Counter<string>();
   private opW = new Grouped<string>(); private opB = new Grouped<string>();
   private first = new Counter<string>(); private e4 = new Counter<string>(); private d4 = new Counter<string>();
@@ -96,7 +96,7 @@ export class Aggregator {
     const moves = g.mv ? g.mv.split(" ") : [];
     this.plies += moves.length;
     const d = new Date(g.at);
-    this.heat[((d.getUTCDay() + 6) % 7) * 24 + d.getUTCHours()]++;
+    this.blocks[Math.floor(d.getUTCHours() / 3)]++;
     this.days.inc(d.toISOString().slice(0, 10));
     this.months.inc(d.toISOString().slice(0, 7));
     for (let i = g.c === "w" ? 0 : 1; i < moves.length; i += 2) this.countMove(moves[i]);
@@ -177,7 +177,7 @@ export class Aggregator {
     }));
     const pf = user.perfs ?? {};
     const valid = this.all.n;
-    const [bd, bn] = this.days.top(1)[0] ?? [];
+    const [, maxDay] = this.days.top(1)[0] ?? [];
     const [bm, bmn] = this.months.top(1)[0] ?? [];
     const pct = (c: Counter<string>): [string, number][] => {
       const tot = [...c.values()].reduce((a, b) => a + b, 0) || 1;
@@ -207,8 +207,8 @@ export class Aggregator {
       quickMate: this.quick && { id: this.quick.id, len: len(this.quick) },
       ends: { W: pct(this.ends.W), L: pct(this.ends.L), D: pct(this.ends.D) },
       years: [...this.years.entries()].sort((a, b) => a[0] - b[0]).map(([year, a]) => ({ year, ...a.out() })),
-      heat: this.heat,
-      busiestDay: bd ? { date: bd, n: bn! } : undefined,
+      blocks: this.blocks,
+      maxDay: maxDay ?? 0,
       activeDays: this.days.size,
       busiestMonth: bm ? { month: bm, n: bmn! } : undefined,
       openings: { white: named(this.opW, 7), black: named(this.opB, 7) },

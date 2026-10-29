@@ -30,30 +30,16 @@ document.querySelectorAll(".seg a").forEach(a => a.addEventListener("click", () 
   document.cookie = `lang=${a.hreflang}; path=/; max-age=31536000; samesite=lax`;
 }));
 
-// ---------- activity grid ----------
-// Data is UTC (Monday first), shown in the viewer's own time zone.
+// ---------- time of day ----------
+// Games per 3-hour block (UTC), grouped into night, morning, afternoon and evening in the viewer's time zone.
 
-function drawHeat(el) {
-  const utc = el.dataset.heat.split(",").map(Number);
-  const shift = Math.round(-new Date().getTimezoneOffset() / 60);
-  const cells = new Array(168).fill(0);
-  utc.forEach((v, i) => { cells[(((i + shift) % 168) + 168) % 168] += v; });
-  const days = T.days;
-  const max = Math.max(1, ...cells), cell = 19, gap = 3, left = 40, top = 8;
-  let svg = "";
-  for (let d = 0; d < 7; d++) {
-    svg += `<text x="${left - 8}" y="${top + d * (cell + gap) + cell * 0.7}" text-anchor="end" class="ax">${days[d]}</text>`;
-    for (let h = 0; h < 24; h++) {
-      const v = cells[d * 24 + h];
-      const x = left + h * (cell + gap), y = top + d * (cell + gap);
-      const tip = `<title>${days[d]} ${String(h).padStart(2, "0")}:00 · ${v} ${T.gamesUnit}</title>`;
-      svg += `<rect class="h0" x="${x}" y="${y}" width="${cell}" height="${cell}" rx="4">${tip}</rect>`;
-      if (v) svg += `<rect class="h1" x="${x}" y="${y}" width="${cell}" height="${cell}" rx="4" fill-opacity="${(0.12 + 0.88 * Math.pow(v / max, 0.7)).toFixed(2)}">${tip}</rect>`;
-    }
-  }
-  for (let h = 0; h < 24; h += 3) svg += `<text x="${left + h * (cell + gap) + cell / 2}" y="${top + 7 * (cell + gap) + 14}" text-anchor="middle" class="ax">${String(h).padStart(2, "0")}</text>`;
-  const W = left + 24 * (cell + gap), H = top + 7 * (cell + gap) + 22;
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}">${svg}</svg>`;
+function drawParts(el) {
+  const shift = -new Date().getTimezoneOffset() / 60;
+  const parts = [0, 0, 0, 0];
+  el.dataset.blocks.split(",").map(Number).forEach((v, b) => { parts[Math.floor((((b * 3 + 1.5 + shift) % 24) + 24) % 24 / 6)] += v; });
+  const total = parts.reduce((a, b) => a + b, 0) || 1, max = Math.max(1, ...parts);
+  const pct = v => { const p = Math.round(v / total * 100); return LANG === "tr" ? "%" + p : p + "%"; };
+  el.innerHTML = T.parts.map((label, i) => `<div class="tr"><span>${label}</span><div class="tb"><i style="width:${(parts[i] / max * 100).toFixed(1)}%"></i></div><b>${pct(parts[i])}</b></div>`).join("");
   const label = $("[data-tzlabel]");
   if (label) {
     let tz = "";
@@ -448,7 +434,7 @@ function initShare(bar) {
   });
 }
 
-document.querySelectorAll("[data-heat]").forEach(drawHeat);
+document.querySelectorAll("[data-blocks]").forEach(drawParts);
 const loading = $("[data-import]");
 if (loading) initLoading(loading);
 const share = $(".share");

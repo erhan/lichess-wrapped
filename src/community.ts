@@ -10,7 +10,7 @@ export interface Digest {
   acc: { avg: number; n: number } | null;
   scalp: { name: string; title?: string; rating: number; id: string } | null;
   openings: Named[];
-  heat: number[];
+  blocks: number[];
 }
 
 export interface Row { name: string; title: string | null; value: number; note?: string; title2?: string; link?: string }
@@ -19,7 +19,7 @@ export interface Community {
   profiles: number;
   all: Rec; white: Rec; black: Rec;
   own: number; mate: number; hours: number;
-  heat: number[];
+  blocks: number[];
   openings: Named[];
   boards: { games: Row[]; rating: Row[]; streak: Row[]; hours: Row[]; acc: Row[]; scalp: Row[] };
 }
@@ -41,7 +41,7 @@ export function digest(s: Stats): Digest {
     acc: s.accuracy ? { avg: s.accuracy.avg, n: s.accuracy.n } : null,
     scalp: b ? { name: b.name, title: b.title, rating: b.rating, id: b.id } : null,
     openings: [...s.openings.white, ...s.openings.black],
-    heat: s.heat,
+    blocks: s.blocks,
   };
 }
 
@@ -52,10 +52,10 @@ const rec = (W: number, D: number, L: number): Rec => {
 const sum = (rs: Rec[]) => rec(rs.reduce((a, r) => a + r.W, 0), rs.reduce((a, r) => a + r.D, 0), rs.reduce((a, r) => a + r.L, 0));
 
 export function combine(list: { name: string; title: string | null; d: Digest }[]): Community {
-  const heat = new Array<number>(168).fill(0);
+  const blocks = new Array<number>(8).fill(0);
   const ops = new Map<string, [number, number, number]>();
   for (const { d } of list) {
-    d.heat.forEach((v, i) => { heat[i] += v; });
+    (d.blocks ?? []).forEach((v, i) => { blocks[i] += v; });
     for (const o of d.openings) {
       const a = ops.get(o.name) ?? [0, 0, 0];
       a[0] += o.W; a[1] += o.D; a[2] += o.L;
@@ -72,7 +72,7 @@ export function combine(list: { name: string; title: string | null; d: Digest }[
     own: list.reduce((a, e) => a + e.d.own, 0),
     mate: list.reduce((a, e) => a + e.d.mate, 0),
     hours: list.reduce((a, e) => a + e.d.hours, 0),
-    heat,
+    blocks,
     openings: [...ops.entries()].map(([name, [W, D, L]]) => ({ name, ...rec(W, D, L) })).sort((a, b) => b.n - a.n).slice(0, 8),
     boards: {
       games: top(d => d.all.n),

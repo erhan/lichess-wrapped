@@ -10,7 +10,6 @@ export const date = (ms: number, l: Lang) => {
   const d = new Date(ms + 3 * 3600_000);
   return `${d.getUTCDate()} ${DICTS[l].months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
-export const isoDate = (iso: string, l: Lang) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${DICTS[l].months[m - 1]} ${y}`; };
 export const month = (ym: string, l: Lang) => { const [y, m] = ym.split("-").map(Number); return `${DICTS[l].months[m - 1]} ${y}`; };
 
 export const esc = (s: unknown) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
