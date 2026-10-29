@@ -30,22 +30,22 @@ Everything runs on Cloudflare: a Worker with static assets and two SQLite-backed
 - **Resumable:** if the tab closes, the next visitor continues where it stopped. A profile older than 24 hours updates in the background on the next visit; the **Update** button works once an hour.
 - **Stats are computed once** when an import finishes (`src/stats.ts`) and the page is rendered from that summary. The share card (`workers-og`) is rendered once per stats version and cached.
 - **A `Registry` object** lists every profile with a small digest (`src/community.ts`) that the home page adds up into community stats and leaderboards.
-- **SEO:** one URL per language (`?lang=tr|en`) with hreflang, `/sitemap.xml`, `robots.txt` and schema.org `ProfilePage` data.
 
 > The server can't reach Lichess itself, so it can't prove the games really came from Lichess. A client doing the first import of an account could send made-up games that pass the checks.
 
 ### Routes
 
+Examples use [seyyah1061](https://lichess.erhan.dev/@/seyyah1061).
+
 | Route | What it does |
 | --- | --- |
-| `/` | Search, community stats and recent profiles |
-| `/@/:username` | Profile page; starts the import on the first visit and shows progress |
-| `/og/:username.png` | 1200×630 share card |
-| `/api/status/:username` | Import state (`importing`, `ready`, `missing`, `closed`) |
-| `POST /api/ingest/:username` | Stores games the browser downloaded, in order |
-| `POST /api/refresh/:username` | Opens an import for games since the last update (once an hour) |
-| `/api/stats/:username.json` | Computed stats |
-| `/sitemap.xml` | Home and every profile, in both languages |
+| [`/`](https://lichess.erhan.dev) | Search, community stats and recent profiles |
+| [`/@/seyyah1061`](https://lichess.erhan.dev/@/seyyah1061) | Profile page; on the first visit it starts the import and shows progress |
+| [`/og/seyyah1061.png`](https://lichess.erhan.dev/og/seyyah1061.png) | 1200×630 share card |
+| [`/api/status/seyyah1061`](https://lichess.erhan.dev/api/status/seyyah1061) | Import state (`importing`, `ready`, `missing`, `closed`) |
+| `POST /api/ingest/seyyah1061` | Stores games the browser downloaded, in order |
+| `POST /api/refresh/seyyah1061` | Opens an import for games since the last update (once an hour) |
+| [`/api/stats/seyyah1061.json`](https://lichess.erhan.dev/api/stats/seyyah1061.json) | Computed stats |
 
 ## Development
 
@@ -57,13 +57,14 @@ npm run typecheck
 npm run deploy
 ```
 
-To check the stats against a real export (NDJSON from `/api/games/user/<name>`):
+To check the stats against a real export, download a player's games from Lichess and run the tests with them:
 
 ```bash
-LICHESS_NDJSON=games.ndjson LICHESS_ID=yasinemrah npm test
+curl -A "lichess-wrapped" -H "Accept: application/x-ndjson" \
+  "https://lichess.org/api/games/user/seyyah1061?moves=true&opening=true&accuracy=true&finished=true" \
+  > games.ndjson
+LICHESS_NDJSON=games.ndjson LICHESS_ID=seyyah1061 npm test
 ```
-
-To remove an account at its owner's request, add its id to the comma-separated `REMOVED` secret (`npx wrangler secret put REMOVED`). Its page then shows a removal notice, imports stop, and the first visit to its page erases what was stored.
 
 The puzzle set is rebuilt from the Lichess puzzle database with `scripts/pick-puzzles.py` (usage in the script).
 
