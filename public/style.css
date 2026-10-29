@@ -181,6 +181,8 @@ td{padding:9px 0;border-top:1px solid var(--line2)}td.num{text-align:right;paddi
 .bt:first-of-type{border-top:none}.bt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt2{grid-template-columns:minmax(0,1fr) auto 110px}.bt2 .muted{text-align:right}
 .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:13px;margin-top:30px;padding-top:18px;border-top:1px solid var(--line)}
+.foot-r{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.gh{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-weight:600}.gh:hover{color:var(--gold)}.gh svg{width:15px;height:15px;fill:currentColor}
 
 /* puzzle on the loading page */
 .puzzle{display:grid;grid-template-columns:minmax(0,440px) 1fr;gap:26px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:var(--shadow);margin-top:6px}
