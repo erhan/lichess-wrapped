@@ -63,6 +63,8 @@ To check the stats against a real export (NDJSON from `/api/games/user/<name>`):
 LICHESS_NDJSON=games.ndjson LICHESS_ID=yasinemrah npm test
 ```
 
+To remove an account at its owner's request, add its id to the comma-separated `REMOVED` secret (`npx wrangler secret put REMOVED`). Its page then shows a removal notice, imports stop, and the first visit to its page erases what was stored.
+
 The puzzle set is rebuilt from the Lichess puzzle database with `scripts/pick-puzzles.py` (usage in the script).
 
 ## Credits
