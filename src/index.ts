@@ -1,5 +1,6 @@
 import { removedSet, USERNAME_RE } from "./lichess";
-import { homePage, loadingPage, messagePage, profilePage, sitemap } from "./render";
+import { homePage, loadingPage, messagePage, profilePage, removePage, sitemap } from "./render";
+import { clearCookie, finishSignIn, startSignIn } from "./oauth";
 import { DICTS, fill, pickLang, type Lang } from "./i18n";
 import { esc } from "./format";
 import type { Profile, View, Ingest, State } from "./profile";
@@ -28,6 +29,9 @@ const publicState = (s: State) => ({
   status: s.status, name: s.name, id: s.id, fetched: s.fetched, expected: s.expected,
   cursor: s.cursor, needUser: s.needUser, updatedAt: s.updatedAt,
 });
+
+const removeAccount = (env: Env, id: string) =>
+  Promise.all([profile(env, id).remove(id), env.REGISTRY.get(env.REGISTRY.idFromName("main")).remove(id)]);
 
 const invalidName = (lang: Lang, name: string) =>
   html(messagePage(lang, DICTS[lang].invalidTitle, DICTS[lang].invalidText, name), 400);
@@ -65,6 +69,17 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return new Response(sitemap(all), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=3600" } });
   }
 
+  if (path === "/remove") return html(removePage(lang));
+  if (path === "/remove/start") return startSignIn(url);
+  if (path === "/remove/callback") {
+    const who = url.searchParams.has("error") ? null : await finishSignIn(req, url).catch(() => null);
+    const res = who
+      ? (await removeAccount(env, who.id), html(messagePage(lang, t.removedSelfTitle, fill(t.removedSelfText, { name: esc(who.username) }))))
+      : html(messagePage(lang, t.removeFailedTitle, t.removeFailedText), 400);
+    res.headers.append("set-cookie", clearCookie);
+    return res;
+  }
+
   if (path === "/go") {
     const u = (url.searchParams.get("u") ?? "").trim().replace(/^https?:\/\/lichess\.org\/@\//, "").replace(/^@/, "");
     if (!USERNAME_RE.test(u)) return invalidName(lang, u);
@@ -75,8 +90,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     const name = m[1];
     if (!USERNAME_RE.test(name)) return invalidName(lang, name);
     if (removed.has(name.toLowerCase())) {
-      // Erasing again is harmless and covers anything stored before the account was listed.
-      await Promise.all([profile(env, name).erase(), env.REGISTRY.get(env.REGISTRY.idFromName("main")).remove(name.toLowerCase())]);
+      await removeAccount(env, name.toLowerCase());
       return html(messagePage(lang, t.removedTitle, t.removedText), 410);
     }
     const { state, stats } = (await profile(env, name).view(name)) as View;
@@ -86,6 +100,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     }
     if (state.status === "missing") return html(messagePage(lang, t.missingTitle, fill(t.missingText, { name: esc(name) }), name), 404);
     if (state.status === "closed") return html(messagePage(lang, t.closedTitle, t.closedText, name), 410);
+    if (state.status === "removed") return html(messagePage(lang, t.removedTitle, t.removedText), 410);
     return html(loadingPage(lang, state));
   }
 

@@ -11,7 +11,7 @@ const STALE_MS = 24 * 3600_000;
 const MIN_REFRESH_MS = 3600_000;
 const MAX_BATCH = 1000;
 
-type Status = "importing" | "ready" | "missing" | "closed";
+type Status = "importing" | "ready" | "missing" | "closed" | "removed";
 
 export interface State {
   status: Status;
@@ -50,6 +50,10 @@ export class Profile extends DurableObject<Env> {
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     this.sql = ctx.storage.sql;
+    this.init();
+  }
+
+  private init() {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS chunks (seq INTEGER PRIMARY KEY AUTOINCREMENT, first_at INTEGER, last_at INTEGER, n INTEGER, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS images (k TEXT PRIMARY KEY, png BLOB NOT NULL);`);
@@ -67,6 +71,7 @@ export class Profile extends DurableObject<Env> {
   // Returns what is stored, opening an import when the account is new or its profile is stale.
   async view(name: string): Promise<View> {
     let state = this.get<State>("state");
+    if (state?.status === "removed") return { state, stats: null };
     const old = this.get<Stats>("stats");
     if (state && old && old.v !== STATS_VERSION) await this.build(state, false);
     const stale = state && Date.now() - (state.status === "missing" ? state.startedAt : state.updatedAt) > (state.status === "missing" ? MIN_REFRESH_MS : STALE_MS);
@@ -81,10 +86,13 @@ export class Profile extends DurableObject<Env> {
     return { state, stats: this.get<Stats>("stats") };
   }
 
-  // Drops everything stored for the account; used when its owner asks for removal.
-  async erase() {
+  // Drops everything stored for the account at its owner's request and keeps it from being rebuilt.
+  async remove(id: string) {
     await this.ctx.storage.deleteAll();
+    this.init();
+    this.put("state", { status: "removed", name: id, id, expected: 0, fetched: 0, cursor: 0, startedAt: Date.now(), updatedAt: 0, needUser: false } satisfies State);
   }
+
 
   async status(): Promise<State | null> {
     return this.get<State>("state");

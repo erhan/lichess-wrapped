@@ -77,8 +77,8 @@ const initial = (name: string) => {
 const titleTag = (t?: string | null) => t ? `<span class="tag">${esc(t)}</span>` : "";
 const GITHUB = "https://github.com/erhan/lichess-wrapped";
 const GH_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
-const footer = (left: string, right = "lichess.erhan.dev") =>
-  `<footer class="foot"><span>${left}</span><span class="foot-r"><span>${right}</span><a class="gh" href="${GITHUB}" target="_blank" rel="noopener">${GH_ICON}GitHub</a></span></footer>`;
+const footer = (t: Dict, left: string, right = "lichess.erhan.dev") =>
+  `<footer class="foot"><span>${left}</span><span class="foot-r"><span>${right}</span><a href="/remove">${t.removeLink}</a><a class="gh" href="${GITHUB}" target="_blank" rel="noopener">${GH_ICON}GitHub</a></span></footer>`;
 
 export function homePage(lang: Lang, reg: Home) {
   const t = DICTS[lang];
@@ -105,7 +105,7 @@ ${examples ? `<div class="examples">${examples}</div>` : ""}
 <section class="how"><h2 class="sec">${t.howTitle}</h2><div class="steps">${steps}</div></section>
 ${reg.community ? communitySection(lang, reg.community) : ""}
 ${reg.recent.length ? `<section><h2 class="sec">${t.recent} <span class="muted">${fill(t.profilesCount, { n: fmt(reg.total, lang) })}</span></h2><div class="pgrid">${cards}</div></section>` : ""}
-${footer(t.dataFrom)}</main>`,
+${footer(t, t.dataFrom)}</main>`,
   });
 }
 
@@ -114,6 +114,15 @@ export function messagePage(lang: Lang, title: string, text: string, value = "")
   return layout({
     lang, title: `${title} — ${t.site}`, desc: text, path: "/", cls: "home", noindex: true,
     body: `<main class="wrap narrow"><section class="hero-home small"><h1 class="home-h">${esc(title)}</h1><p class="lead">${text}</p>${searchForm(t, value, true)}</section></main>`,
+  });
+}
+
+export function removePage(lang: Lang) {
+  const t = DICTS[lang];
+  return layout({
+    lang, title: `${t.removeTitle} — ${t.site}`, desc: t.removeText, path: "/remove", cls: "home", noindex: true,
+    body: `<main class="wrap narrow"><section class="hero-home small"><h1 class="home-h">${t.removeTitle}</h1><p class="lead">${t.removeText}</p>
+<a class="cta" href="/remove/start">${t.removeButton}</a></section></main>`,
   });
 }
 
@@ -319,7 +328,7 @@ ${card(t.beaten, st.beaten.map(b => `<div class="bt">${b.title ? titleTag(b.titl
 ${card(t.opponents, st.opponents.map(o => `<div class="bt bt2"><a href="/@/${esc(o.name)}" rel="nofollow"><b>${esc(o.name)}</b></a><span class="num">${fill(t.nGames, { n: f(o.n) })}</span><span class="muted">${fill(t.wdlShort, { w: o.W, d: o.D, l: o.L })}</span></div>`).join("") || none)}
 </div>
 
-${footer(fill(t.source, { n: f(st.downloaded) }) + (st.voided ? fill(t.voided, { n: f(st.voided) }) : ""), `lichess.erhan.dev/@/${esc(name)}`)}
+${footer(t, fill(t.source, { n: f(st.downloaded) }) + (st.voided ? fill(t.voided, { n: f(st.voided) }) : ""), `lichess.erhan.dev/@/${esc(name)}`)}
 </main>`;
 
   return layout({

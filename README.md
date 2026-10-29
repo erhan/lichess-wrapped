@@ -45,6 +45,7 @@ Examples use [seyyah1061](https://lichess.erhan.dev/@/seyyah1061).
 | [`/api/status/seyyah1061`](https://lichess.erhan.dev/api/status/seyyah1061) | Import state (`importing`, `ready`, `missing`, `closed`) |
 | `POST /api/ingest/seyyah1061` | Stores games the browser downloaded, in order |
 | [`/api/stats/seyyah1061.json`](https://lichess.erhan.dev/api/stats/seyyah1061.json) | Computed stats |
+| [`/remove`](https://lichess.erhan.dev/remove) | Sign in with Lichess to delete your own profile and keep it from being rebuilt |
 
 ## Development
 
