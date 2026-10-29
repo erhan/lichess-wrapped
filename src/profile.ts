@@ -94,6 +94,13 @@ export class Profile extends DurableObject<Env> {
   }
 
 
+  // Lets a removed account be built again, once its owner has signed in.
+  async restore() {
+    if (this.get<State>("state")?.status !== "removed") return;
+    await this.ctx.storage.deleteAll();
+    this.init();
+  }
+
   async status(): Promise<State | null> {
     return this.get<State>("state");
   }

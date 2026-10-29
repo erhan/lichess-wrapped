@@ -1,5 +1,6 @@
 // Sign in with Lichess (OAuth 2 with PKCE, no scopes) so people can prove which account is theirs
-// before removing it. Unlike the game export, these endpoints answer requests from Workers.
+// before removing it, or restoring it after a removal. Unlike the game export, these endpoints
+// answer requests from Workers.
 const LICHESS = "https://lichess.org";
 const UA = { "User-Agent": "lichess-wrapped (https://github.com/erhan/lichess-wrapped)" };
 const CLIENT_ID = "lichess-wrapped";
@@ -12,8 +13,10 @@ const callback = (url: URL) => `${url.origin}/remove/callback`;
 
 export const clearCookie = `${COOKIE}=; Path=/remove; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
 
-// Sends the visitor to Lichess, keeping the PKCE verifier and state in a short-lived cookie.
-export async function startSignIn(url: URL): Promise<Response> {
+export type Purpose = "remove" | "restore";
+
+// Sends the visitor to Lichess, keeping the PKCE verifier, state and purpose in a short-lived cookie.
+export async function startSignIn(url: URL, purpose: Purpose): Promise<Response> {
   const verifier = random(), state = random();
   const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
   const q = new URLSearchParams({
@@ -22,15 +25,15 @@ export async function startSignIn(url: URL): Promise<Response> {
   });
   return new Response(null, {
     status: 302,
-    headers: { location: `${LICHESS}/oauth?${q}`, "set-cookie": `${COOKIE}=${state}.${verifier}; Path=/remove; Max-Age=600; HttpOnly; Secure; SameSite=Lax` },
+    headers: { location: `${LICHESS}/oauth?${q}`, "set-cookie": `${COOKIE}=${state}.${verifier}.${purpose}; Path=/remove; Max-Age=600; HttpOnly; Secure; SameSite=Lax` },
   });
 }
 
 // Returns the account that signed in, or null when the sign-in was refused or does not check out.
-export async function finishSignIn(req: Request, url: URL): Promise<{ id: string; username: string } | null> {
-  const [state, verifier] = (req.headers.get("cookie")?.match(/(?:^|;\s*)rm=([^;]+)/)?.[1] ?? "").split(".");
+export async function finishSignIn(req: Request, url: URL): Promise<{ id: string; username: string; purpose: Purpose } | null> {
+  const [state, verifier, purpose] = (req.headers.get("cookie")?.match(/(?:^|;\s*)rm=([^;]+)/)?.[1] ?? "").split(".");
   const code = url.searchParams.get("code");
-  if (!code || !state || !verifier || state !== url.searchParams.get("state")) return null;
+  if (!code || !state || !verifier || state !== url.searchParams.get("state") || (purpose !== "remove" && purpose !== "restore")) return null;
   const token = await fetch(`${LICHESS}/api/token`, {
     method: "POST", headers: UA,
     body: new URLSearchParams({ grant_type: "authorization_code", code, code_verifier: verifier, redirect_uri: callback(url), client_id: CLIENT_ID }),
@@ -43,5 +46,5 @@ export async function finishSignIn(req: Request, url: URL): Promise<{ id: string
   await fetch(`${LICHESS}/api/token`, { method: "DELETE", headers: auth }).catch(() => {});
   if (!account.ok) return null;
   const { id, username } = await account.json<{ id?: string; username?: string }>();
-  return typeof id === "string" && typeof username === "string" ? { id, username } : null;
+  return typeof id === "string" && typeof username === "string" ? { id, username, purpose } : null;
 }

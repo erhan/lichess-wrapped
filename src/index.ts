@@ -70,12 +70,20 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   }
 
   if (path === "/remove") return html(removePage(lang));
-  if (path === "/remove/start") return startSignIn(url);
+  if (path === "/remove/start") return startSignIn(url, "remove");
+  if (path === "/remove/restore") return startSignIn(url, "restore");
   if (path === "/remove/callback") {
     const who = url.searchParams.has("error") ? null : await finishSignIn(req, url).catch(() => null);
-    const res = who
-      ? (await removeAccount(env, who.id), html(messagePage(lang, t.removedSelfTitle, fill(t.removedSelfText, { name: esc(who.username) }))))
-      : html(messagePage(lang, t.removeFailedTitle, t.removeFailedText), 400);
+    let res: Response;
+    if (!who) res = html(messagePage(lang, t.removeFailedTitle, t.removeFailedText), 400);
+    else if (who.purpose === "remove") {
+      await removeAccount(env, who.id);
+      res = html(messagePage(lang, t.removedSelfTitle, fill(t.removedSelfText, { name: esc(who.username) })));
+    } else if (removed.has(who.id)) res = html(messagePage(lang, t.removedTitle, t.removedText), 410);
+    else {
+      await profile(env, who.id).restore();
+      res = html(messagePage(lang, t.restoredTitle, fill(t.restoredText, { name: esc(who.username) })));
+    }
     res.headers.append("set-cookie", clearCookie);
     return res;
   }
@@ -100,7 +108,7 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     }
     if (state.status === "missing") return html(messagePage(lang, t.missingTitle, fill(t.missingText, { name: esc(name) }), name), 404);
     if (state.status === "closed") return html(messagePage(lang, t.closedTitle, t.closedText, name), 410);
-    if (state.status === "removed") return html(messagePage(lang, t.removedTitle, t.removedText), 410);
+    if (state.status === "removed") return html(messagePage(lang, t.removedTitle, `${t.removedText} ${t.restoreHint}`), 410);
     return html(loadingPage(lang, state));
   }
 
