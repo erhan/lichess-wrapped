@@ -15,6 +15,7 @@ export interface Game {
   or?: number;         // opponent rating
   on?: string;         // opponent name
   ot?: string;         // opponent title
+  oprov?: boolean;     // opponent rating was provisional
   acc?: number;
   acpl?: number;
   inacc?: number;
@@ -53,6 +54,7 @@ export function toGame(raw: any, userId: string): Game {
   if (op.rating != null) g.or = op.rating;
   if (op.user?.name) g.on = op.user.name;
   if (op.user?.title) g.ot = op.user.title;
+  if (op.provisional) g.oprov = true;
   const a = me.analysis;
   if (a?.accuracy != null) {
     g.acc = a.accuracy; g.acpl = a.acpl; g.inacc = a.inaccuracy; g.mist = a.mistake; g.blun = a.blunder;

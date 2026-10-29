@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { toGame, type Game } from "./game";
 import type { LichessUser } from "./lichess";
-import { Aggregator, type Stats } from "./stats";
+import { Aggregator, STATS_VERSION, type Stats } from "./stats";
 import { renderOg } from "./og";
 import { digest } from "./community";
 import type { Lang } from "./i18n";
@@ -67,6 +67,8 @@ export class Profile extends DurableObject<Env> {
   // Returns what is stored, opening an import when the account is new or its profile is stale.
   async view(name: string): Promise<View> {
     let state = this.get<State>("state");
+    const old = this.get<Stats>("stats");
+    if (state && old && old.v !== STATS_VERSION) await this.build(state, false);
     const stale = state && Date.now() - (state.status === "missing" ? state.startedAt : state.updatedAt) > (state.status === "missing" ? MIN_REFRESH_MS : STALE_MS);
     if (!state || state.status !== "importing" && stale) {
       state = {
@@ -155,12 +157,13 @@ export class Profile extends DurableObject<Env> {
       state.cursor = chunk[chunk.length - 1].at + 1;
     }
 
-    if (req.done && state.status === "importing") await this.finish(state);
+    if (req.done && state.status === "importing") await this.build(state, true);
     else this.put("state", state);
     return state;
   }
 
-  private async finish(state: State) {
+  // Computes the stats from every stored game; `finished` closes the import that just ended.
+  private async build(state: State, finished: boolean) {
     const user = this.get<LichessUser>("user");
     if (!user) throw new IngestError("user required");
     const agg = new Aggregator();
@@ -168,10 +171,12 @@ export class Profile extends DurableObject<Env> {
       for (const g of JSON.parse(data) as Game[]) agg.add(g);
     }
     const stats = agg.finish(user);
-    state.status = "ready";
-    state.updatedAt = Date.now();
+    if (finished) {
+      state.status = "ready";
+      state.updatedAt = Date.now();
+      this.put("state", state);
+    }
     this.put("stats", stats);
-    this.put("state", state);
     this.sql.exec("DELETE FROM images");
     const reg = this.env.REGISTRY.get(this.env.REGISTRY.idFromName("main"));
     await reg.upsert({

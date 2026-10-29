@@ -44,6 +44,9 @@ export interface Stats {
   tournaments: { games: number; arenas: number; swiss: number };
 }
 
+// Stored profiles with an older version are rebuilt from their games the next time they are opened.
+export const STATS_VERSION = 2;
+
 const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
 const TITLES = ["GM", "IM", "FM", "CM", "NM", "WGM", "WIM", "WFM", "WCM", "LM", "BOT"];
 
@@ -129,7 +132,7 @@ export class Aggregator {
       else if (moves.length > 1 && moves[0] === "d4") this.d4.inc(moves[1]);
     }
     if (g.ot && TITLES.includes(g.ot)) this.titled.add(g.ot, r);
-    if (r === "W" && std && g.or != null && g.on) {
+    if (r === "W" && std && g.rated && !g.oprov && g.or != null && g.on) {
       this.beaten.push({ name: g.on, title: g.ot, rating: g.or, perf: g.perf, year: d.getUTCFullYear(), id: g.id });
       if (this.beaten.length > 200) this.trimBeaten();
     }
@@ -185,7 +188,7 @@ export class Aggregator {
     };
     const len = (g?: Game) => g ? Math.ceil(g.mv.split(" ").length / 2) : 0;
     return {
-      v: 1,
+      v: STATS_VERSION,
       user: {
         id: user.id, name: user.username, title: user.title, flag: user.profile?.flag,
         realName: user.profile?.realName, location: user.profile?.location,

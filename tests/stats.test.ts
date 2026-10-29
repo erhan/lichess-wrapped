@@ -31,6 +31,21 @@ test("results are counted from the owner's side", () => {
   assert.equal(s.firstMove[0][0], "Nf3");
 });
 
+test("strongest wins skip casual games and provisional ratings", () => {
+  const agg = new Aggregator();
+  const win = (id: string, rating: number, extra: (g: any) => void = () => {}) => {
+    const g = raw({ id, at: id.charCodeAt(0), winner: "white", black: "opp" + id });
+    g.players.black.rating = rating;
+    extra(g);
+    agg.add(toGame(g, "me"));
+  };
+  win("a", 2100);
+  win("b", 3000, g => { g.rated = false; });
+  win("c", 2900, g => { g.players.black.provisional = true; });
+  const s = agg.finish(user as any);
+  assert.deepEqual(s.beaten.map(b => b.rating), [2100]);
+});
+
 // Optional check against a real export: LICHESS_NDJSON=path LICHESS_ID=user npm test
 const file = process.env.LICHESS_NDJSON;
 test("real export", { skip: !file || !existsSync(file) }, () => {
