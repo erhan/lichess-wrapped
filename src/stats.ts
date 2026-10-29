@@ -2,28 +2,26 @@ import type { Game } from "./game";
 import type { LichessUser } from "./lichess";
 
 export interface Rec { n: number; W: number; D: number; L: number; s: number }
-export interface PerfRow extends Rec { key: string; peak: number | null; cur: number | null }
+interface PerfRow extends Rec { key: string; peak: number | null; cur: number | null }
 export interface Named extends Rec { name: string }
-export interface Beaten { name: string; title?: string; rating: number; perf: string; year: number; id: string }
+interface Beaten { name: string; title?: string; rating: number; perf: string; year: number; id: string }
 
 export interface Stats {
   v: number;
   user: {
     id: string; name: string; title?: string; flag?: string; realName?: string; location?: string;
-    createdAt: number; playTime: number; patron?: boolean;
+    createdAt: number; playTime: number;
     perfs: Record<string, { rating?: number; games?: number; prov?: boolean }>;
-    puzzle?: number; storm?: number; racer?: number; streak?: number;
   };
   generatedAt: number;
   first: number; last: number;
   downloaded: number; voided: number;
   all: Rec; white: Rec; black: Rec; rated: Rec; casual: Rec;
   perfs: PerfRow[];
-  variants: { key: string; n: number }[];
   moves: {
     own: number; plies: number; avgLen: number;
     pieces: Record<string, number>;
-    cap: number; chk: number; mate: number; short: number; long: number; promo: number; under: number;
+    cap: number; chk: number; mate: number; short: number; long: number; promo: number;
   };
   longest?: { id: string; len: number; r: string };
   quickMate?: { id: string; len: number };
@@ -41,12 +39,9 @@ export interface Stats {
   beaten: Beaten[];
   opponents: Named[];
   distinctOpponents: number;
-  vsAi?: Rec;
   streaks: { win: number; unbeaten: number; loss: number };
   accuracy?: { n: number; avg: number; acpl: number; inacc: number; mist: number; blun: number };
   tournaments: { games: number; arenas: number; swiss: number };
-  sources: Record<string, number>;
-  avgOppDiff?: number;
 }
 
 const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
@@ -77,9 +72,8 @@ export class Aggregator {
   private all = new RecAcc(); private white = new RecAcc(); private black = new RecAcc();
   private rated = new RecAcc(); private casual = new RecAcc();
   private perf = new Grouped<string>(); private peak = new Map<string, number>();
-  private variants = new Counter<string>();
   private pieces = new Counter<string>();
-  private mm = { cap: 0, chk: 0, mate: 0, short: 0, long: 0, promo: 0, under: 0 };
+  private mm = { cap: 0, chk: 0, mate: 0, short: 0, long: 0, promo: 0 };
   private own = 0; private plies = 0; private validPlies = 0;
   private longest?: Game; private quick?: Game;
   private ends = { W: new Counter<string>(), L: new Counter<string>(), D: new Counter<string>() };
@@ -91,12 +85,9 @@ export class Aggregator {
   private titled = new Grouped<string>();
   private beaten: Beaten[] = [];
   private opp = new Grouped<string>();
-  private ai = new RecAcc();
   private cw = 0; private cu = 0; private cl = 0; private bw = 0; private bu = 0; private bl = 0;
   private acc = { n: 0, sum: 0, acpl: 0, inacc: 0, mist: 0, blun: 0 };
   private tourGames = 0; private arenas = new Set<string>(); private swiss = new Set<string>();
-  private sources = new Counter<string>();
-  private diffSum = 0; private diffN = 0;
   private firstAt = Infinity; private lastAt = 0;
 
   add(g: Game) {
@@ -125,7 +116,6 @@ export class Aggregator {
       }
     } else {
       this.perf.add("variants", r);
-      this.variants.inc(g.variant);
     }
     if (!this.longest || moves.length > this.longest.mv.split(" ").length) this.longest = g;
     if (r === "W" && g.status === "mate" && std && (!this.quick || moves.length < this.quick.mv.split(" ").length)) this.quick = g;
@@ -144,8 +134,6 @@ export class Aggregator {
       if (this.beaten.length > 200) this.trimBeaten();
     }
     if (g.on) this.opp.add(g.on, r);
-    if (g.ai != null) this.ai.add(r);
-    if (std && g.or != null && g.mr != null) { this.diffSum += g.or - g.mr; this.diffN++; }
 
     this.cw = r === "W" ? this.cw + 1 : 0;
     this.cu = r !== "L" ? this.cu + 1 : 0;
@@ -160,7 +148,6 @@ export class Aggregator {
       this.tourGames++;
       (g.tour.startsWith("a:") ? this.arenas : this.swiss).add(g.tour);
     }
-    this.sources.inc(g.src ?? "unknown");
   }
 
   private countMove(m: string) {
@@ -171,7 +158,7 @@ export class Aggregator {
     if (m.includes("x")) this.mm.cap++;
     if (m.includes("+")) this.mm.chk++;
     if (m.includes("#")) this.mm.mate++;
-    if (m.includes("=")) { this.mm.promo++; if (!m.includes("=Q")) this.mm.under++; }
+    if (m.includes("=")) this.mm.promo++;
   }
 
   // Keep one entry per opponent, strongest first.
@@ -202,10 +189,9 @@ export class Aggregator {
       user: {
         id: user.id, name: user.username, title: user.title, flag: user.profile?.flag,
         realName: user.profile?.realName, location: user.profile?.location,
-        createdAt: user.createdAt, playTime: user.playTime?.total ?? 0, patron: user.patron,
+        createdAt: user.createdAt, playTime: user.playTime?.total ?? 0,
         perfs: Object.fromEntries(Object.entries(pf).filter(([, p]) => p.rating != null)
           .map(([k, p]) => [k, { rating: p.rating, games: p.games, prov: p.prov }])),
-        puzzle: pf.puzzle?.rating, storm: pf.storm?.score, racer: pf.racer?.score, streak: pf.streak?.score,
       },
       generatedAt: Date.now(),
       first: this.firstAt === Infinity ? 0 : this.firstAt, last: this.lastAt,
@@ -213,7 +199,6 @@ export class Aggregator {
       all: this.all.out(), white: this.white.out(), black: this.black.out(),
       rated: this.rated.out(), casual: this.casual.out(),
       perfs,
-      variants: this.variants.top(5).map(([key, n]) => ({ key, n })),
       moves: {
         own: this.own, plies: this.plies,
         avgLen: valid ? Math.round(this.validPlies / 2 / valid * 10) / 10 : 0,
@@ -233,15 +218,12 @@ export class Aggregator {
       beaten: this.beaten.slice(0, 5),
       opponents: named(this.opp, 5),
       distinctOpponents: this.opp.size,
-      vsAi: this.ai.n ? this.ai.out() : undefined,
       streaks: { win: this.bw, unbeaten: this.bu, loss: this.bl },
       accuracy: this.acc.n ? {
         n: this.acc.n, avg: Math.round(this.acc.sum / this.acc.n * 10) / 10, acpl: Math.round(this.acc.acpl / this.acc.n * 10) / 10,
         inacc: this.acc.inacc, mist: this.acc.mist, blun: this.acc.blun,
       } : undefined,
       tournaments: { games: this.tourGames, arenas: this.arenas.size, swiss: this.swiss.size },
-      sources: Object.fromEntries(this.sources),
-      avgOppDiff: this.diffN ? Math.round(this.diffSum / this.diffN) : undefined,
     };
   }
 }

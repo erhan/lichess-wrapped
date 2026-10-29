@@ -5,7 +5,7 @@ import { MIN_ACC_GAMES, type Community, type Row } from "./community";
 import { DICTS, LANGS, fill, type Lang, type Dict } from "./i18n";
 import { fmt, dec, pct, date, isoDate, month, esc, flag, PIECE_GLYPHS } from "./format";
 
-export const ORIGIN = "https://lichess.erhan.dev";
+const ORIGIN = "https://lichess.erhan.dev";
 const ASSET_V = 9;
 
 interface Layout {

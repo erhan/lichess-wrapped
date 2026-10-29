@@ -90,11 +90,10 @@ const tr = {
     busy: "Lichess yoğun, bir dakika bekleniyor…", retry: "Bağlantı sorunu, tekrar deneniyor…", stopped: "İndirme durdu. Sayfayı yenileyip tekrar dene.",
     copied: "Link kopyalandı", preparing: "Görsel hazırlanıyor…", downloaded: "Görsel indirildi", imgFailed: "Görsel oluşturulamadı",
     adding: "Yeni oyunlar ekleniyor… {n}", reloading: "Güncellendi, yenileniyor…", upToDate: "Profil güncel", refreshFailed: "Güncellenemedi",
-    light: "Açık tema", dark: "Koyu tema",
     pzTitle: "BEKLERKEN BİR BULMACA ÇÖZ", pzTurn: "Sıra sende: {c}", pzWhite: "beyaz", pzBlack: "siyah",
     pzGood: "Doğru! Devam et.", pzSolved: "Çözdün!", pzWrong: "Bu hamle değil, tekrar dene.", pzShown: "Çözüm gösterildi.",
     pzHint: "İpucu", pzSolution: "Çözümü göster", pzNext: "Sıradaki",
-    pzLevel: "Zorluk", pzMixed: "Karışık", pzEasy: "Kolay", pzMedium: "Orta", pzHard: "Zor",
+    pzMixed: "Karışık", pzEasy: "Kolay", pzMedium: "Orta", pzHard: "Zor",
     pzRating: "Puan", pzScore: "Çözülen <b>{n}</b> · seri <b>{s}</b>",
     pzReady: "Profil hazır!", pzView: "Profili gör",
     pzCredit: "Bulmacalar: <a href=\"https://database.lichess.org/#puzzles\" target=\"_blank\" rel=\"noopener\">Lichess bulmaca veritabanı</a> (CC0)",
@@ -192,11 +191,10 @@ const en: Dict = {
     busy: "Lichess is busy, waiting a minute…", retry: "Connection problem, retrying…", stopped: "Download stopped. Reload the page to try again.",
     copied: "Link copied", preparing: "Preparing image…", downloaded: "Image downloaded", imgFailed: "Could not create the image",
     adding: "Adding new games… {n}", reloading: "Updated, reloading…", upToDate: "Profile is up to date", refreshFailed: "Update failed",
-    light: "Light theme", dark: "Dark theme",
     pzTitle: "SOLVE A PUZZLE WHILE YOU WAIT", pzTurn: "Your move: {c}", pzWhite: "white", pzBlack: "black",
     pzGood: "Correct! Keep going.", pzSolved: "Solved!", pzWrong: "Not this move, try again.", pzShown: "Solution shown.",
     pzHint: "Hint", pzSolution: "Show solution", pzNext: "Next",
-    pzLevel: "Difficulty", pzMixed: "Mixed", pzEasy: "Easy", pzMedium: "Medium", pzHard: "Hard",
+    pzMixed: "Mixed", pzEasy: "Easy", pzMedium: "Medium", pzHard: "Hard",
     pzRating: "Rating", pzScore: "Solved <b>{n}</b> · streak <b>{s}</b>",
     pzReady: "Profile is ready!", pzView: "View profile",
     pzCredit: "Puzzles: <a href=\"https://database.lichess.org/#puzzles\" target=\"_blank\" rel=\"noopener\">Lichess puzzle database</a> (CC0)",
@@ -209,11 +207,11 @@ export const DICTS: Record<Lang, Dict> = { tr, en };
 export const fill = (s: string, vars: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ""));
 
 // ?lang= wins, then the cookie, then the browser's preference.
-export function pickLang(req: Request, url: URL): { lang: Lang; set: boolean } {
+export function pickLang(req: Request, url: URL): Lang {
   const q = url.searchParams.get("lang");
-  if (q === "tr" || q === "en") return { lang: q, set: true };
+  if (q === "tr" || q === "en") return q;
   const c = req.headers.get("cookie")?.match(/(?:^|;\s*)lang=(tr|en)/)?.[1] as Lang | undefined;
-  if (c) return { lang: c, set: false };
+  if (c) return c;
   const first = (req.headers.get("accept-language") ?? "").trim().toLowerCase().split(/[,;]/)[0];
-  return { lang: !first || first.startsWith("tr") ? "tr" : "en", set: false };
+  return !first || first.startsWith("tr") ? "tr" : "en";
 }

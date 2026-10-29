@@ -3,7 +3,7 @@ import type { Env } from "./index";
 import type { Stats } from "./stats";
 import { combine, digest, type Community, type Digest } from "./community";
 
-export interface Entry {
+interface Entry {
   id: string; name: string; title: string | null; flag: string | null;
   games: number; score: number; blitz: number | null; updatedAt: number;
 }
@@ -41,7 +41,7 @@ export class Registry extends DurableObject<Env> {
     this.community = undefined;
   }
 
-  async recent(limit = 12): Promise<{ total: number; recent: Entry[] }> {
+  private recent(limit: number): { total: number; recent: Entry[] } {
     const total = this.sql.exec<{ n: number }>("SELECT COUNT(*) AS n FROM profiles").one().n;
     const recent = this.sql.exec<any>("SELECT * FROM profiles ORDER BY updated_at DESC LIMIT ?", limit).toArray()
       .map(r => ({ id: r.id, name: r.name, title: r.title, flag: r.flag, games: r.games, score: r.score, blitz: r.blitz, updatedAt: r.updated_at }));
@@ -61,9 +61,9 @@ export class Registry extends DurableObject<Env> {
       const community = rows.length >= 2 ? combine(rows.map(r => ({ name: r.name, title: r.title, d: JSON.parse(r.digest) }))) : null;
       // Kept until the next upsert, once every profile has a digest.
       if (!pending) this.community = community;
-      return { ...(await this.recent(limit)), community };
+      return { ...this.recent(limit), community };
     }
-    return { ...(await this.recent(limit)), community: this.community };
+    return { ...this.recent(limit), community: this.community };
   }
 
   // Returns how many profiles still have no digest.

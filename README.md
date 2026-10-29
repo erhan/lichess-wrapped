@@ -68,6 +68,10 @@ LICHESS_NDJSON=games.ndjson LICHESS_ID=seyyah1061 npm test
 
 The puzzle set is rebuilt from the Lichess puzzle database with `scripts/pick-puzzles.py` (usage in the script).
 
+## Thanks, Lichess ♥
+
+This project only exists because [Lichess](https://lichess.org) is free, open source and generous with its data: an open API for every player's games and a public puzzle database. Thanks to the Lichess team and everyone who supports it. If you enjoy this page, consider [supporting Lichess](https://lichess.org/patron).
+
 ## Credits
 
 - Game data from the [Lichess API](https://lichess.org/api). Not affiliated with Lichess.

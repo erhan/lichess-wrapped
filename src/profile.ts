@@ -7,11 +7,11 @@ import { digest } from "./community";
 import type { Lang } from "./i18n";
 import type { Env } from "./index";
 
-export const STALE_MS = 24 * 3600_000;
-export const MIN_REFRESH_MS = 3600_000;
-export const MAX_BATCH = 1000;
+const STALE_MS = 24 * 3600_000;
+const MIN_REFRESH_MS = 3600_000;
+const MAX_BATCH = 1000;
 
-export type Status = "importing" | "ready" | "missing" | "closed";
+type Status = "importing" | "ready" | "missing" | "closed";
 
 export interface State {
   status: Status;
@@ -35,7 +35,7 @@ export interface Ingest {
   done?: boolean;
 }
 
-export type IngestResult = { ok: true; state: State } | { ok: false; code: number; error: string; state: State | null };
+type IngestResult = { ok: true; state: State } | { ok: false; code: number; error: string; state: State | null };
 
 class IngestError extends Error {
   constructor(msg: string, readonly code = 400) { super(msg); }
@@ -179,9 +179,6 @@ export class Profile extends DurableObject<Env> {
       games: stats.all.n, score: stats.all.s, blitz: user.perfs?.blitz?.rating ?? null, updatedAt: state.updatedAt,
     }, digest(stats));
   }
-
-  // Nothing is scheduled any more; this absorbs alarms left by the earlier server-side importer.
-  async alarm() {}
 
   // Share card for link previews, rendered once per stats version.
   async og(lang: Lang): Promise<ArrayBuffer | null> {

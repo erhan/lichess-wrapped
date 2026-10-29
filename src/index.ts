@@ -49,7 +49,7 @@ export default {
 async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
   const path = decodeURIComponent(url.pathname);
-  const { lang } = pickLang(req, url);
+  const lang = pickLang(req, url);
   const t = DICTS[lang];
   const removed = removedSet(env.REMOVED);
   const allowed = (name: string) => USERNAME_RE.test(name) && !removed.has(name.toLowerCase());
