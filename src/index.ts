@@ -108,11 +108,6 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
     return json(publicState(r.state));
   }
 
-  if ((m = path.match(/^\/api\/refresh\/([^/]+)$/)) && allowed(m[1]) && req.method === "POST") {
-    const s = await profile(env, m[1]).refresh();
-    return s ? json(publicState(s)) : json({ status: "unknown" }, 404);
-  }
-
   if ((m = path.match(/^\/api\/stats\/([^/]+)\.json$/)) && allowed(m[1])) {
     const s = await profile(env, m[1]).stats();
     return s ? new Response(JSON.stringify(s), { headers: { "content-type": "application/json", "cache-control": "public, max-age=300", "access-control-allow-origin": "*" } })

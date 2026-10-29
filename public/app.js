@@ -406,7 +406,7 @@ function initShare(bar) {
   $('[data-act="x"]', bar).href = "https://x.com/intent/post?text=" + encodeURIComponent(title) + "&url=" + encodeURIComponent(url);
 
   // Brings the stored games up to date in the background, then reloads with the new numbers.
-  const update = async btn => {
+  const update = async () => {
     const before = Number(bar.dataset.fetched);
     const ui = {
       progress(n) { say(fill(T.adding, { n: fmt(Math.max(0, n - before)) }), true); },
@@ -415,10 +415,10 @@ function initShare(bar) {
     try {
       const st = await runImport(bar.dataset.id, ui);
       if (st.fetched > before) { say(T.reloading, true); location.reload(); }
-      else { say(T.upToDate); if (btn) btn.remove(); }
+      else say(T.upToDate);
     } catch { say(T.refreshFailed); }
   };
-  if (bar.dataset.importing) update(null);
+  if (bar.dataset.importing) update();
 
   bar.addEventListener("click", async e => {
     const act = e.target.closest("[data-act]")?.dataset.act;
@@ -443,14 +443,6 @@ function initShare(bar) {
         say(T.downloaded);
       } catch { say(T.imgFailed); }
       document.body.classList.remove("capturing");
-      btn.disabled = false;
-    } else if (act === "refresh") {
-      const btn = e.target.closest("button");
-      btn.disabled = true;
-      try {
-        await fetch(`/api/refresh/${encodeURIComponent(bar.dataset.id)}`, { method: "POST" });
-        await update(btn);
-      } catch { say(T.refreshFailed); }
       btn.disabled = false;
     }
   });

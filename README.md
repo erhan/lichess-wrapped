@@ -27,7 +27,7 @@ Everything runs on Cloudflare: a Worker with static assets and two SQLite-backed
 
 - **The visitor's browser downloads the games.** Lichess rate-limits the IP that all Cloudflare Workers share, even with an API token. So `public/app.js` streams the account and its games straight from the Lichess API (CORS is open), oldest first (`sort=dateAsc`, `since=<cursor>`), and posts them in batches of 300 to `/api/ingest`.
 - **One `Profile` object per account** stores the games as JSON chunks. Each batch carries the current cursor; a mismatch returns 409, so two tabs can't interleave data. The server checks that the account matches, that the player is in every game, that ids are valid and that dates only move forward and aren't in the future. Stored games can't be changed; updates only append games after the cursor.
-- **Resumable:** if the tab closes, the next visitor continues where it stopped. A profile older than 24 hours updates in the background on the next visit; the **Update** button works once an hour.
+- **Resumable:** if the tab closes, the next visitor continues where it stopped. A profile older than 24 hours updates in the background on the next visit.
 - **Stats are computed once** when an import finishes (`src/stats.ts`) and the page is rendered from that summary. The share card (`workers-og`) is rendered once per stats version and cached.
 - **A `Registry` object** lists every profile with a small digest (`src/community.ts`) that the home page adds up into community stats and leaderboards.
 
@@ -44,7 +44,6 @@ Examples use [seyyah1061](https://lichess.erhan.dev/@/seyyah1061).
 | [`/og/seyyah1061.png`](https://lichess.erhan.dev/og/seyyah1061.png) | 1200×630 share card |
 | [`/api/status/seyyah1061`](https://lichess.erhan.dev/api/status/seyyah1061) | Import state (`importing`, `ready`, `missing`, `closed`) |
 | `POST /api/ingest/seyyah1061` | Stores games the browser downloaded, in order |
-| `POST /api/refresh/seyyah1061` | Opens an import for games since the last update (once an hour) |
 | [`/api/stats/seyyah1061.json`](https://lichess.erhan.dev/api/stats/seyyah1061.json) | Computed stats |
 
 ## Development

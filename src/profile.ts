@@ -94,17 +94,6 @@ export class Profile extends DurableObject<Env> {
     return this.get<Stats>("stats");
   }
 
-  // Opens an import for games played since the last one, at most once an hour.
-  async refresh(): Promise<State | null> {
-    const state = this.get<State>("state");
-    if (!state || state.status !== "ready" || Date.now() - state.updatedAt < MIN_REFRESH_MS) return state;
-    state.status = "importing";
-    state.needUser = true;
-    state.startedAt = Date.now();
-    this.put("state", state);
-    return state;
-  }
-
   async ingest(req: Ingest): Promise<IngestResult> {
     try {
       return { ok: true, state: await this.apply(req) };

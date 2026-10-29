@@ -6,7 +6,7 @@ import { DICTS, LANGS, fill, type Lang, type Dict } from "./i18n";
 import { fmt, dec, pct, date, isoDate, month, esc, flag, PIECE_GLYPHS } from "./format";
 
 const ORIGIN = "https://lichess.erhan.dev";
-const ASSET_V = 10;
+const ASSET_V = 11;
 
 interface Layout {
   lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string;
@@ -232,7 +232,6 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
   const pieceTot = Object.values(ms.pieces).reduce((a, b) => a + b, 0) || 1;
   const pieceMax = Math.max(1, ...Object.values(ms.pieces));
   const hours = Math.round(u.playTime / 3600);
-  const canRefresh = state.status === "ready" && Date.now() - state.updatedAt > 3600_000;
   const sub = [u.location && esc(u.location), `<a href="https://lichess.org/@/${esc(name)}" target="_blank" rel="noopener">lichess.org/@/${esc(name)}</a>`].filter(Boolean).join(" · ");
   const none = `<p class="muted">${t.noData}</p>`;
   const gameLink = (id: string, text: string) => `<a href="https://lichess.org/${esc(id)}" target="_blank" rel="noopener">${text}</a>`;
@@ -249,7 +248,7 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
 <div class="eyebrow">${t.eyebrow}</div>
 <h1>${titleTag(u.title)}${esc(u.realName || name)} <span class="fl">${flag(u.flag)}</span></h1>
 <div class="hsub">${u.realName ? `<b>${esc(name)}</b> · ` : ""}${sub}</div>
-<div class="hdates">${t.member} <b>${date(u.createdAt, lang)}</b> · ${t.dataRange} <b>${date(st.first, lang)} – ${date(st.last, lang)}</b> · ${t.updated} <b>${date(state.updatedAt, lang)}</b></div></div></div>
+<div class="hdates">${t.member} <b>${date(u.createdAt, lang)}</b> · ${t.updated} <b>${date(state.updatedAt, lang)}</b></div></div></div>
 <dl class="hr">${MAIN_PERFS.map(k => {
   const p = u.perfs[k];
   const value = p?.rating && p.games ? p.rating + (p.prov ? `<i title="${t.provisional}">?</i>` : "") : "–";
@@ -261,7 +260,7 @@ export function profilePage(lang: Lang, st: Stats, state: State) {
 <button data-act="share" class="primary">${t.share}</button><button data-act="copy">${t.copyLink}</button>
 <a data-act="wa" target="_blank" rel="noopener">WhatsApp</a><a data-act="x" target="_blank" rel="noopener">X</a>
 <button data-act="png">${t.downloadImage}</button>
-${canRefresh ? `<button data-act="refresh" class="ghost">${t.refresh}</button>` : ""}<span class="toast" role="status"></span></div>
+<span class="toast" role="status"></span></div>
 
 <div class="kpis">
 ${kpi(f(st.all.n), t.kGames, fill(t.kGamesSub, { n: f(st.rated.n) }))}

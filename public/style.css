@@ -80,7 +80,6 @@ a:hover{color:var(--gold)}
 .search button,.share .primary{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 .search button:hover,.share button:hover,.share a:hover{filter:brightness(1.07);color:inherit}
 .search.big{padding:7px 7px 7px 18px;border-radius:18px;max-width:720px}.search.big input{font-size:18px;padding:10px 6px}.search.big button{font-size:16px;padding:13px 24px;border-radius:13px}.search.big .s-ico{font-size:22px}
-.share .ghost{background:transparent}
 
 /* home */
 .hero-home{position:relative;padding:72px 0 30px}

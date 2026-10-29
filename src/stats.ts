@@ -14,7 +14,6 @@ export interface Stats {
     perfs: Record<string, { rating?: number; games?: number; prov?: boolean }>;
   };
   generatedAt: number;
-  first: number; last: number;
   downloaded: number; voided: number;
   all: Rec; white: Rec; black: Rec; rated: Rec; casual: Rec;
   perfs: PerfRow[];
@@ -91,11 +90,9 @@ export class Aggregator {
   private cw = 0; private cu = 0; private cl = 0; private bw = 0; private bu = 0; private bl = 0;
   private acc = { n: 0, sum: 0, acpl: 0, inacc: 0, mist: 0, blun: 0 };
   private tourGames = 0; private arenas = new Set<string>(); private swiss = new Set<string>();
-  private firstAt = Infinity; private lastAt = 0;
 
   add(g: Game) {
     this.downloaded++;
-    this.firstAt = Math.min(this.firstAt, g.at); this.lastAt = Math.max(this.lastAt, g.at);
     const moves = g.mv ? g.mv.split(" ") : [];
     this.plies += moves.length;
     const d = new Date(g.at);
@@ -197,7 +194,6 @@ export class Aggregator {
           .map(([k, p]) => [k, { rating: p.rating, games: p.games, prov: p.prov }])),
       },
       generatedAt: Date.now(),
-      first: this.firstAt === Infinity ? 0 : this.firstAt, last: this.lastAt,
       downloaded: this.downloaded, voided: this.voided,
       all: this.all.out(), white: this.white.out(), black: this.black.out(),
       rated: this.rated.out(), casual: this.casual.out(),
