@@ -1,5 +1,5 @@
 import { ImageResponse } from "workers-og";
-import type { Stats } from "./stats";
+import { STANDARD_PERFS, type Stats } from "./stats";
 import { fmt, pct, esc } from "./format";
 import { DICTS, fill, type Lang } from "./i18n";
 
@@ -26,7 +26,7 @@ export async function renderOg(s: Stats, lang: Lang): Promise<ArrayBuffer> {
   const t = DICTS[lang];
   const f = (n: number) => fmt(n, lang);
   const u = s.user;
-  const best = [...s.perfs].filter(p => p.cur && p.key !== "variants").sort((a, b) => b.n - a.n)[0];
+  const best = [...s.perfs].filter(p => p.cur && STANDARD_PERFS.includes(p.key)).sort((a, b) => b.n - a.n)[0];
   const html = `<div style="display:flex;flex-direction:column;width:1200px;height:630px;padding:56px 64px;background:#120f0b;background-image:radial-gradient(circle at 90% 0%, rgba(227,181,91,0.28), rgba(18,15,11,0) 55%);font-family:Inter;color:#efe7da">
 <div style="display:flex;align-items:center">
 <div style="display:flex;width:132px;height:132px;border-radius:66px;background:#e3b55b;align-items:center;justify-content:center;font-size:68px;font-weight:700;color:#1a140b">${esc(u.name[0].toUpperCase())}</div>

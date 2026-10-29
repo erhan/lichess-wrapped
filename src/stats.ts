@@ -44,9 +44,12 @@ export interface Stats {
 }
 
 // Stored profiles with an older version are rebuilt from their games the next time they are opened.
-export const STATS_VERSION = 4;
+export const STATS_VERSION = 6;
 
-const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
+export const STANDARD_PERFS = ["ultraBullet", "bullet", "blitz", "rapid", "classical", "correspondence"];
+// Variants get one row each, in Lichess order. Games from a set position (thematic arenas) are
+// ordinary chess rated in their time control, so they count there.
+const VARIANTS = ["chess960", "crazyhouse", "antichess", "atomic", "horde", "kingOfTheHill", "racingKings", "threeCheck"];
 const TITLES = ["GM", "IM", "FM", "CM", "NM", "WGM", "WIM", "WFM", "WCM", "LM", "BOT"];
 
 class Counter<K> extends Map<K, number> {
@@ -108,14 +111,11 @@ export class Aggregator {
     (g.c === "w" ? this.white : this.black).add(r);
     (g.rated ? this.rated : this.casual).add(r);
     const std = g.variant === "standard";
-    if (std) {
-      this.perf.add(g.perf, r);
-      if (g.rated && g.mr != null) {
-        const after = g.mr + (g.md ?? 0);
-        if (after > (this.peak.get(g.perf) ?? 0)) this.peak.set(g.perf, after);
-      }
-    } else {
-      this.perf.add("variants", r);
+    const row = std || g.variant === "fromPosition" ? g.perf : g.variant;
+    this.perf.add(row, r);
+    if (g.rated && g.mr != null) {
+      const after = g.mr + (g.md ?? 0);
+      if (after > (this.peak.get(row) ?? 0)) this.peak.set(row, after);
     }
     if (!this.longest || moves.length > this.longest.mv.split(" ").length) this.longest = g;
     if (r === "W" && g.status === "mate" && std && (!this.quick || moves.length < this.quick.mv.split(" ").length)) this.quick = g;
@@ -171,9 +171,8 @@ export class Aggregator {
   finish(user: LichessUser): Stats {
     this.trimBeaten();
     const named = (g: Grouped<string>, n: number): Named[] => g.top(n).map(([name, a]) => ({ name, ...a.out() }));
-    const perfs: PerfRow[] = [...STANDARD_PERFS, "variants"].filter(k => this.perf.has(k)).map(k => ({
-      key: k, ...this.perf.get(k)!.out(), peak: this.peak.get(k) ?? null,
-      cur: k === "variants" ? null : user.perfs?.[k]?.rating ?? null,
+    const perfs: PerfRow[] = [...STANDARD_PERFS, ...VARIANTS].filter(k => this.perf.has(k)).map(k => ({
+      key: k, ...this.perf.get(k)!.out(), peak: this.peak.get(k) ?? null, cur: user.perfs?.[k]?.rating ?? null,
     }));
     const pf = user.perfs ?? {};
     const valid = this.all.n;

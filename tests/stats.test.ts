@@ -46,6 +46,22 @@ test("strongest wins skip casual games and provisional ratings", () => {
   assert.deepEqual(s.beaten.map(b => b.rating), [2100]);
 });
 
+test("each variant gets its own row with its rating", () => {
+  const agg = new Aggregator();
+  const game = (id: string, variant: string, winner: string) => {
+    const g = raw({ id, at: id.charCodeAt(0), winner });
+    g.variant = variant; g.perf = variant === "standard" ? "blitz" : variant;
+    agg.add(toGame(g, "me"));
+  };
+  game("a", "atomic", "white");
+  game("b", "atomic", "black");
+  game("c", "chess960", "white");
+  game("d", "standard", "white");
+  const s = agg.finish({ ...user, perfs: { ...user.perfs, atomic: { rating: 1800 } } } as any);
+  assert.deepEqual(s.perfs.map(p => [p.key, p.n, p.cur]), [["blitz", 1, 2000], ["chess960", 1, null], ["atomic", 2, 1800]]);
+  assert.equal(s.perfs.find(p => p.key === "atomic")!.peak, 2005);
+});
+
 // Optional check against a real export: LICHESS_NDJSON=path LICHESS_ID=user npm test
 const file = process.env.LICHESS_NDJSON;
 test("real export", { skip: !file || !existsSync(file) }, () => {
