@@ -3,10 +3,10 @@ import type { State } from "./profile";
 import type { Home } from "./registry";
 import { MIN_ACC_GAMES, type Community, type Row } from "./community";
 import { DICTS, LANGS, fill, type Lang, type Dict } from "./i18n";
-import { fmt, dec, pct, date, month, esc, flag, PIECE_GLYPHS } from "./format";
+import { fmt, dec, pct, compact, date, month, esc, flag, PIECE_GLYPHS } from "./format";
 
 const ORIGIN = "https://lichess.erhan.dev";
-const ASSET_V = 12;
+const ASSET_V = 15;
 
 interface Layout {
   lang: Lang; title: string; desc: string; path: string; image?: string; body: string; cls?: string;
@@ -169,6 +169,9 @@ function yearChart(years: Stats["years"], lang: Lang) {
   const W = 570, H = 230;
   const mx = Math.max(1, ...years.map(y => y.n));
   const bw = (W - 40) / Math.max(1, years.length);
+  // Values switch to the short form, or are left out, when the bars get too narrow for them.
+  const fits = (s: string) => s.length * 7.2 <= bw * .95;
+  const label = (n: number) => fits(fmt(n, lang)) ? fmt(n, lang) : fits(compact(n, lang)) ? compact(n, lang) : "";
   const out: string[] = [];
   years.forEach((y, i) => {
     const x = 20 + i * bw, bh = y.n / mx * (H - 70), top = H - 30 - bh;
@@ -178,7 +181,7 @@ function yearChart(years: Stats["years"], lang: Lang) {
       out.push(`<rect class="f${cls}" x="${(x + bw * .18).toFixed(1)}" y="${seg.toFixed(1)}" width="${(bw * .64).toFixed(1)}" height="${sh.toFixed(1)}"/>`);
       seg += sh;
     }
-    out.push(`<text x="${(x + bw / 2).toFixed(1)}" y="${(top - 8).toFixed(1)}" text-anchor="middle" class="ax-v">${fmt(y.n, lang)}</text>`);
+    out.push(`<text x="${(x + bw / 2).toFixed(1)}" y="${(top - 8).toFixed(1)}" text-anchor="middle" class="ax-v">${label(y.n)}<title>${y.year}: ${fmt(y.n, lang)}</title></text>`);
     out.push(`<text x="${(x + bw / 2).toFixed(1)}" y="${H - 10}" text-anchor="middle" class="ax">’${String(y.year).slice(2)}</text>`);
   });
   return `<svg class="chart" viewBox="0 0 ${W} ${H}">${out.join("")}</svg>`;
@@ -193,8 +196,10 @@ function openingList(list: Named[], lang: Lang) {
 function results(r: { all: Rec; white: Rec; black: Rec }, lang: Lang, extra = "") {
   const t = DICTS[lang];
   const f = (n: number) => fmt(n, lang);
+  // Six- and seven-digit totals shrink to fit the three columns (see .big3 in the stylesheet).
+  const len = Math.max(...[r.all.W, r.all.D, r.all.L].map(n => f(n).length));
   return `<div class="res">${donut(r.all, lang)}<div class="rb">
-<div class="big3"><div class="cw"><b class="num">${f(r.all.W)}</b><span>${t.win}</span></div><div class="cd"><b class="num">${f(r.all.D)}</b><span>${t.draw}</span></div><div class="cl"><b class="num">${f(r.all.L)}</b><span>${t.loss}</span></div></div>
+<div class="big3" style="--len:${len}"><div class="cw"><b class="num">${f(r.all.W)}</b><span>${t.win}</span></div><div class="cd"><b class="num">${f(r.all.D)}</b><span>${t.draw}</span></div><div class="cl"><b class="num">${f(r.all.L)}</b><span>${t.loss}</span></div></div>
 <div class="colrow"><span>♔ ${t.white}</span>${wdl(r.white, t)}<span class="num s">${pct(r.white.s, lang, 1)}</span></div>
 <div class="colrow"><span>♚ ${t.black}</span>${wdl(r.black, t)}<span class="num s">${pct(r.black.s, lang, 1)}</span></div>
 ${extra}</div></div>`;

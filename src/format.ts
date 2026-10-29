@@ -3,6 +3,9 @@ import { DICTS, type Lang } from "./i18n";
 // Locale formatting done by hand so the output does not depend on the runtime's ICU data.
 export const fmt = (n: number, l: Lang) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, l === "tr" ? "." : ",");
 export const dec = (n: number, l: Lang, d = 1) => l === "tr" ? n.toFixed(d).replace(".", ",") : n.toFixed(d);
+// Short form for tight spots such as chart labels: 2.1k, 63k, 1.2M.
+export const compact = (n: number, l: Lang) =>
+  n >= 1e6 ? dec(n / 1e6, l) + "M" : n >= 1e4 ? Math.round(n / 1e3) + "k" : n >= 1e3 ? dec(n / 1e3, l) + "k" : String(n);
 export const pct = (n: number, l: Lang, d = 0) => l === "tr" ? "%" + dec(n, l, d) : dec(n, l, d) + "%";
 
 // Dates are shown in Turkey time (UTC+3), where most users are.
